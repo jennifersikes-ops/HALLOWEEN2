@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Murder at Mesquite Hollow: A Science Mystery</title>
+<style>
+:root{
+  --dusk:#1b1027; --dusk2:#2a1840; --panel:#241635; --line:#4a3366;
+  --paper:#f1e6cc; --paper2:#e6d8b8; --ink:#2b2233; --inkSoft:#5a4d63;
+  --pumpkin:#e8761a; --pumpkinDeep:#b85608; --stamp:#b3261e; --moss:#2f7d4f; --gold:#f2c14e; --cream:#f4ecde; --mute:#bba9cf;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--dusk) radial-gradient(1100px 480px at 75% -8%, #3b2359 0%, transparent 62%) no-repeat;
+  color:var(--cream);
+  font:17px/1.55 "Trebuchet MS","Segoe UI",system-ui,sans-serif;
+  min-height:100vh;
+}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;line-height:1.2;margin:0 0 .5em}
+a{color:var(--gold)}
+button{font:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* header */
+.top{max-width:1180px;margin:0 auto;padding:18px 18px 6px;display:flex;gap:18px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.brand h1{font-size:clamp(24px,4vw,36px);font-style:italic;letter-spacing:.01em;text-shadow:0 2px 0 #0007}
+.brand p{margin:0;color:var(--mute);font-size:15px}
+.meter{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dots{display:flex;gap:6px}
+.dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--pumpkin);display:block;background:transparent}
+.dots i.on{background:var(--pumpkin)}
+.dots i.now{box-shadow:0 0 0 3px #e8761a55}
+.miss{font-size:15px;color:var(--mute)}
+
+/* layout */
+.wrap{max-width:1180px;margin:0 auto;padding:12px 18px 40px;display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:22px;align-items:start}
+body[data-stage="intro"] .wrap{grid-template-columns:minmax(0,1fr)}
+body[data-stage="intro"] #board{display:none}
+@media (max-width:920px){.wrap{grid-template-columns:minmax(0,1fr)}}
+
+/* paper (case file) */
+.paper{background:var(--paper);color:var(--ink);border-radius:3px;padding:22px 26px;box-shadow:0 3px 0 #0006;font-family:Georgia,"Times New Roman",serif;font-size:18px;line-height:1.6;margin-bottom:18px}
+.paper h2{font-size:26px}
+.paper h3{font-size:20px;margin-top:1.1em}
+.paper p{margin:.6em 0}
+.paper .sans{font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif}
+.tag{display:inline-block;background:var(--ink);color:var(--paper);border-radius:3px;padding:1px 10px;font:700 15px "Trebuchet MS",system-ui,sans-serif;margin-right:8px;vertical-align:middle}
+.note{background:#fff7da;border-left:5px solid var(--pumpkin);padding:8px 14px;margin:12px 0;font-size:17px}
+
+table.tbl{border-collapse:collapse;width:100%;font-size:16px;margin:10px 0;font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif}
+.tbl th,.tbl td{border:1px solid #b9a97f;padding:6px 10px;text-align:left}
+.tbl th{background:var(--paper2)}
+.scroll{overflow-x:auto}
+
+/* buttons */
+.btn{background:var(--pumpkin);color:#1b0f06;border:0;border-radius:6px;padding:11px 20px;font-weight:700;cursor:pointer;box-shadow:0 3px 0 var(--pumpkinDeep)}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--pumpkinDeep)}
+.btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--ink);box-shadow:none}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:14px}
+
+/* questions */
+.qhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--inkSoft);font:15px "Trebuchet MS",system-ui,sans-serif;margin-bottom:6px}
+.qtext{font-size:20px;font-weight:700;margin:6px 0 14px}
+.opts{display:grid;gap:10px}
+.opt{display:block;width:100%;text-align:left;background:#fffaf0;color:var(--ink);border:2px solid #b9a97f;border-radius:6px;padding:11px 14px;cursor:pointer;font:17px/1.4 "Trebuchet MS","Segoe UI",system-ui,sans-serif}
+.opt:hover:not([disabled]){border-color:var(--pumpkin);background:#fff1d6}
+.opt.right{background:#d8f0df;border-color:var(--moss);font-weight:700}
+.opt.wrong{background:#f7d9d6;border-color:var(--stamp);text-decoration:line-through;opacity:.75}
+.opt[disabled]{cursor:default}
+.feedback{margin-top:14px;padding:12px 16px;border-radius:6px;font:16px/1.5 "Trebuchet MS",system-ui,sans-serif}
+.feedback.good{background:#d8f0df;border-left:6px solid var(--moss)}
+.feedback.bad{background:#f7d9d6;border-left:6px solid var(--stamp)}
+.seq{display:flex;gap:8px;flex-wrap:wrap;min-height:48px;margin:8px 0;padding:8px;border:2px dashed #b9a97f;border-radius:6px;background:#fffaf0;font-family:"Trebuchet MS",system-ui,sans-serif}
+.seq .chip{background:var(--ink);color:var(--paper);padding:6px 12px;border-radius:20px}
+.seq .ph{color:var(--inkSoft);padding:6px 4px}
+.pool{display:flex;gap:10px;flex-wrap:wrap}
+.pool .opt{width:auto}
+.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-6px)}50%{transform:translateX(6px)}80%{transform:translateX(-3px)}}
+
+/* graphics */
+svg.chart{width:100%;height:auto;max-width:680px;display:block;margin:8px auto;background:#fffaf0;border:1px solid #b9a97f;border-radius:4px}
+.chart .grid{stroke:#d9ccaa;stroke-width:1}
+.chart .gridM{stroke:#ece2c8;stroke-width:1}
+.chart .axis{stroke:#2b2233;stroke-width:2}
+.chart text{font:12px "Trebuchet MS",system-ui,sans-serif;fill:#2b2233}
+.chart .lbl{font-size:14px;font-weight:700}
+
+/* board */
+#board{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;position:sticky;top:12px}
+#board h2{font-size:22px;margin-bottom:10px}
+.sus{position:relative;background:var(--paper);color:var(--ink);border-radius:3px;padding:10px 12px;margin-bottom:10px;font:15px/1.4 "Trebuchet MS",system-ui,sans-serif;border-left:6px solid #8f7fa3}
+.sus b{font-family:Georgia,serif;font-size:17px}
+.sus small{display:block;color:var(--inkSoft)}
+.sus.prime{border-left-color:var(--pumpkin);background:#ffe8c4}
+.sus.cleared{border-left-color:var(--moss);opacity:.82}
+.sus.cleared b{text-decoration:line-through;text-decoration-thickness:2px}
+.stamp{position:absolute;right:8px;top:10px;transform:rotate(-9deg);border:3px solid var(--stamp);color:var(--stamp);font:800 15px "Trebuchet MS",system-ui,sans-serif;letter-spacing:.06em;padding:0 8px;border-radius:4px;background:#f1e6ccdd;animation:slam .35s ease-out}
+@keyframes slam{from{transform:scale(2.4) rotate(-9deg);opacity:0}to{transform:scale(1) rotate(-9deg);opacity:1}}
+.why{display:block;margin-top:4px;color:var(--ink)}
+
+/* suspect statements */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:10px}
+.card{background:#fffaf0;border:1px solid #b9a97f;border-radius:4px;padding:12px 14px;font:16px/1.45 "Trebuchet MS",system-ui,sans-serif}
+.card b{font-family:Georgia,serif;font-size:18px}
+.card q{display:block;margin-top:6px;font-family:Georgia,serif;font-style:italic;quotes:"“" "”"}
+
+.pick{display:grid;gap:10px;margin:12px 0}
+.pick .opt[aria-pressed="true"]{border-color:var(--pumpkin);background:#ffe8c4;font-weight:700}
+input[type=text]{font:inherit;padding:10px 12px;border-radius:6px;border:2px solid #b9a97f;background:#fffaf0;color:var(--ink);width:100%;max-width:360px}
+textarea{width:100%;min-height:150px;font:16px/1.5 "Trebuchet MS",system-ui,sans-serif;padding:10px 12px;border-radius:6px;border:2px solid #b9a97f;background:#fffaf0;color:var(--ink)}
+.foot{max-width:1180px;margin:0 auto;padding:0 18px 30px;color:var(--mute);font-size:14px}
+.foot button{background:none;border:0;color:var(--mute);text-decoration:underline;cursor:pointer;font-size:14px;padding:0}
+#cerPrint{display:none}
+
+@media (prefers-reduced-motion:reduce){.stamp,.shake{animation:none}}
+
+@media print{
+  body{background:#fff !important;color:#000}
+  .top .meter,.row,#board,.foot,.btn,#cer{display:none !important}
+  .wrap{display:block;padding:0}
+  .paper{box-shadow:none;border:1px solid #999;background:#fff;break-inside:avoid}
+  #cerPrint{display:block;white-space:pre-wrap;border:1px solid #999;padding:10px;font:15px/1.5 Georgia,serif}
+  .brand p{color:#000}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>Murder at Mesquite Hollow</h1>
+    <p>A Halloween science mystery set in Calavera Springs, Texas</p>
+  </div>
+  <div class="meter" id="meter"></div>
+</header>
+<main class="wrap">
+  <section id="app" aria-live="polite"></section>
+  <aside id="board" aria-label="Case board"></aside>
+</main>
+<div class="foot"><button id="reset" type="button">Start a new case (clears saved progress)</button></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   DATA
+   ============================================================ */
+const SUSPECTS = [
+  {id:"marigold", name:"Madame Marigold Voss", role:"Fortune teller", emoji:"🔮", place:"Fortune Tent", dist:360,
+   say:"I was in my tent reading palms all night. When the ground rumbled, I knew the spirits were angry!"},
+  {id:"gus", name:"Gus “Grizzly” Garza", role:"Funnel-cake vendor", emoji:"🍩", place:"Funnel Cake Stand", dist:480,
+   say:"I was frying funnel cakes. Ask anybody with powdered sugar on their shirt!"},
+  {id:"quartz", name:"Dr. Ophelia Quartz", role:"Geologist, Cavern of Layers", emoji:"⛏️", place:"Cavern of Layers", dist:720,
+   say:"I never leave my cavern when there are rock samples to study."},
+  {id:"rex", name:"Rex Ramírez", role:"Ride mechanic", emoji:"🔧", place:"Maintenance Barn", dist:180,
+   say:"I checked that ride at nine o’clock sharp. After that I was rebuilding a motor in the barn."},
+  {id:"dexter", name:"Dexter Bonesworth", role:"Nephew of the victim", emoji:"🧛", place:"Gift Shop", dist:270,
+   say:"I was counting souvenirs in the gift shop. That earthquake must have shaken the ride apart. It was a tragic accident!"}
+];
+
+/* ---------- little SVG helpers ---------- */
+function arrowDefs(id,color){
+  return `<defs><marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${color}"/></marker></defs>`;
+}
+function fbdNet(){
+  return `<svg class="chart" viewBox="0 0 560 230" role="img" aria-label="Force diagram: the chest is pushed right with 600 newtons and friction pulls left with 420 newtons">
+  ${arrowDefs("aR","#c2570a")}${arrowDefs("aL","#3b2a8c")}
+  <rect x="0" y="150" width="560" height="6" fill="#8a7a55"/>
+  <rect x="215" y="85" width="130" height="65" rx="4" fill="#7a4a21" stroke="#2b2233" stroke-width="3"/>
+  <text x="280" y="124" text-anchor="middle" fill="#fff" style="fill:#fff" class="lbl">Coffin Chest</text>
+  <line x1="345" y1="118" x2="520" y2="118" stroke="#c2570a" stroke-width="8" marker-end="url(#aR)"/>
+  <text x="432" y="100" text-anchor="middle" class="lbl">Applied push: 600 N</text>
+  <line x1="215" y1="118" x2="108" y2="118" stroke="#3b2a8c" stroke-width="8" marker-end="url(#aL)"/>
+  <text x="150" y="100" text-anchor="middle" class="lbl">Friction: 420 N</text>
+  </svg>`;
+}
+function fbdVert(){
+  return `<svg class="chart" viewBox="0 0 560 250" role="img" aria-label="Force diagram: the floor pushes up with 900 newtons and gravity pulls down with 900 newtons">
+  ${arrowDefs("aU","#1d6b3f")}${arrowDefs("aD","#8a1f1f")}
+  <rect x="0" y="170" width="560" height="6" fill="#8a7a55"/>
+  <rect x="215" y="95" width="130" height="75" rx="4" fill="#7a4a21" stroke="#2b2233" stroke-width="3"/>
+  <text x="280" y="138" text-anchor="middle" style="fill:#fff" class="lbl">Coffin Chest</text>
+  <line x1="280" y1="95" x2="280" y2="18" stroke="#1d6b3f" stroke-width="8" marker-end="url(#aU)"/>
+  <text x="300" y="38" class="lbl">Normal force (floor pushes up): 900 N</text>
+  <line x1="280" y1="170" x2="280" y2="238" stroke="#8a1f1f" stroke-width="8" marker-end="url(#aD)"/>
+  <text x="300" y="214" class="lbl">Weight (gravity pulls down): 900 N</text>
+  </svg>`;
+}
+function earthModel(){
+  return `<svg class="chart" viewBox="0 0 560 300" role="img" aria-label="Cutaway of a planet with four layers labeled A, B, C and D">
+  <circle cx="150" cy="150" r="135" fill="#b78a5a" stroke="#2b2233" stroke-width="3"/>
+  <circle cx="150" cy="150" r="120" fill="#d9692b" stroke="#2b2233" stroke-width="2"/>
+  <circle cx="150" cy="150" r="68" fill="#f0a830" stroke="#2b2233" stroke-width="2"/>
+  <circle cx="150" cy="150" r="32" fill="#fff2a8" stroke="#2b2233" stroke-width="2"/>
+  <text x="150" y="156" text-anchor="middle" class="lbl">D</text>
+  <text x="150" y="108" text-anchor="middle" class="lbl">C</text>
+  <text x="150" y="53" text-anchor="middle" class="lbl">B</text>
+  <text x="150" y="23" text-anchor="middle" class="lbl" style="fill:#2b2233">A</text>
+  <g font-size="14">
+  <text x="310" y="40"><tspan class="lbl">Layer A:</tspan> 5 to 70 km thick, cool solid rock</text>
+  <text x="310" y="92"><tspan class="lbl">Layer B:</tspan> about 2,900 km thick, hot rock</text>
+  <text x="310" y="108">that flows very slowly</text>
+  <text x="310" y="160"><tspan class="lbl">Layer C:</tspan> about 2,200 km thick,</text>
+  <text x="310" y="176">liquid iron and nickel</text>
+  <text x="310" y="228"><tspan class="lbl">Layer D:</tspan> radius about 1,220 km,</text>
+  <text x="310" y="244">solid iron and nickel, over 5,000 °C</text>
+  </g>
+  <text x="150" y="294" text-anchor="middle" font-size="12">Placard from the Cavern of Layers (not to scale)</text>
+  </svg>`;
+}
+function graphRex(){
+  const W=680,H=360,L=64,R=18,T=18,B=54, pw=W-L-R, ph=H-T-B;
+  const X=m=>L+pw*m/25, Y=d=>T+ph*(1-d/400);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Distance-time graph of Rex's wristband. He moves from 360 m to 180 m from the booth between 9:20 and 9:24 PM, then stays at 180 m until 9:45 PM">`;
+  for(let d=0;d<=400;d+=50){
+    s+=`<line x1="${L}" y1="${Y(d)}" x2="${W-R}" y2="${Y(d)}" class="${d%100===0?'grid':'gridM'}"/>`;
+    if(d%100===0) s+=`<text x="${L-8}" y="${Y(d)+4}" text-anchor="end">${d}</text>`;
+  }
+  for(let m=0;m<=25;m++){
+    s+=`<line x1="${X(m)}" y1="${T}" x2="${X(m)}" y2="${T+ph}" class="${m%5===0?'grid':'gridM'}"/>`;
+    if(m%5===0) s+=`<text x="${X(m)}" y="${T+ph+18}" text-anchor="middle">9:${20+m}</text>`;
+  }
+  s+=`<line x1="${L}" y1="${T}" x2="${L}" y2="${T+ph}" class="axis"/><line x1="${L}" y1="${T+ph}" x2="${W-R}" y2="${T+ph}" class="axis"/>`;
+  s+=`<line x1="${X(20)}" y1="${T}" x2="${X(20)}" y2="${T+ph}" stroke="#b3261e" stroke-width="2" stroke-dasharray="6 5"/>`;
+  s+=`<text x="${X(20)-6}" y="${T+14}" text-anchor="end" style="fill:#b3261e" class="lbl">Ride launch 9:40</text>`;
+  s+=`<polyline points="${X(0)},${Y(360)} ${X(4)},${Y(180)} ${X(25)},${Y(180)}" fill="none" stroke="#c2570a" stroke-width="4" stroke-linejoin="round"/>`;
+  [[0,360],[4,180],[25,180]].forEach(p=>{s+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="5" fill="#2b2233"/>`});
+  s+=`<text x="${(L+W-R)/2}" y="${H-8}" text-anchor="middle" class="lbl">Time (PM)</text>`;
+  s+=`<text transform="translate(16 ${T+ph/2}) rotate(-90)" text-anchor="middle" class="lbl">Distance from control booth (m)</text>`;
+  s+=`</svg>`;
+  return s;
+}
+function seismo(){
+  const W=680,H=240,L=20,R=20,T=20,B=44, pw=W-L-R, mid=T+(H-T-B)/2;
+  const X=t=>L+pw*t/240; // t in seconds from 9:39:00
+  let pts=[];
+  for(let t=0;t<=240;t+=1){
+    const noise=((Math.sin(t*12.9898)*43758.5453)%1);
+    let a=2.5*noise;
+    if(t>140){a+=48*Math.exp(-(t-140)/55)*Math.sin((t-140)*1.7)}
+    pts.push(`${X(t).toFixed(1)},${(mid-a).toFixed(1)}`);
+  }
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Seismograph record. A flat trace with tiny wiggles until 9:41:20 PM, then strong shaking">`;
+  s+=`<line x1="${L}" y1="${mid}" x2="${W-R}" y2="${mid}" class="grid"/>`;
+  [["9:39:00",0],["9:40:00",60],["9:41:00",120],["9:42:00",180],["9:43:00",240]].forEach(a=>{
+    s+=`<line x1="${X(a[1])}" y1="${T}" x2="${X(a[1])}" y2="${H-B}" class="gridM"/><text x="${X(a[1])}" y="${H-B+18}" text-anchor="middle">${a[0]}</text>`;
+  });
+  s+=`<line x1="${X(60)}" y1="${T}" x2="${X(60)}" y2="${H-B}" stroke="#b3261e" stroke-width="2" stroke-dasharray="6 5"/>`;
+  s+=`<text x="${X(60)+6}" y="${T+14}" style="fill:#b3261e" class="lbl">Ride launch 9:40:00</text>`;
+  s+=`<line x1="${X(140)}" y1="${T}" x2="${X(140)}" y2="${H-B}" stroke="#3b2a8c" stroke-width="2" stroke-dasharray="6 5"/>`;
+  s+=`<text x="${X(140)+6}" y="${T+14}" style="fill:#3b2a8c" class="lbl">First tremor 9:41:20</text>`;
+  s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#2b2233" stroke-width="1.6"/>`;
+  s+=`<text x="${W/2}" y="${H-6}" text-anchor="middle" class="lbl">Seismograph in the park office (time, PM)</text></svg>`;
+  return s;
+}
+
+/* ---------- stations ---------- */
+const STATIONS = [
+{
+ n:1, icon:"🎢", title:"The Phantom Freefall", teks:"8.7B",
+ teksText:"Investigate and describe how Newton’s three laws of motion act at the same time in systems such as vehicle restraints.",
+ brief:`<p>The Phantom Freefall is the park’s biggest ride: a car lifts riders up a tall tower, then drops them. Deputy Dara reports that the <b>lap bar’s locking pin was pulled out</b>, so the bar could not hold Barnaby Bonesworth in his seat when the ride launched.</p>
+ <p>Before you can chase a culprit, you need to understand why a missing pin matters. Newton’s three laws are all at work in a restraint at the same moment.</p>`,
+ evidence:``,
+ qs:[
+  {q:"When the Phantom Freefall car comes to a sudden stop at the bottom, a rider’s body tries to keep moving downward. Which law explains this?",
+   opts:["Newton’s 1st law (inertia)","Newton’s 2nd law (F = ma)","Newton’s 3rd law (action and reaction)","The law of conservation of mass"],a:0,
+   hint:"Think about what an object does when no unbalanced force acts on it, or when the thing carrying it stops.",
+   explain:"Newton’s 1st law: an object keeps its state of motion unless an unbalanced force changes it. The car stops, but the rider’s body keeps going until a force (the lap bar) stops it."},
+  {q:"A working lap bar pushes up on a rider with 900 N of force during the stop. How much force does the rider push on the lap bar, and in which direction?",
+   opts:["900 N, in the opposite direction","0 N, because the bar is not moving","450 N, shared between the rider and the bar","1,800 N, in the same direction"],a:0,
+   hint:"Forces come in pairs. What do you know about the size and direction of the two forces in a pair?",
+   explain:"Newton’s 3rd law: forces come in equal and opposite pairs. If the bar pushes the rider with 900 N, the rider pushes back on the bar with 900 N the other way."},
+  {q:"Which explanation uses all three of Newton’s laws to show why the missing pin was so dangerous?",
+   opts:[
+    "Without the pin, the bar could not push on the rider with the force needed to move him along with the car (2nd law). His body kept its own motion (1st law), and with no bar touching him there was no pair of equal and opposite forces holding him in (3rd law).",
+    "The car pushed on the rider harder than the rider pushed on the car, so the 3rd law was broken.",
+    "Newton’s laws do not apply to rides that are falling, so only gravity mattered.",
+    "A rider with no lap bar has more inertia, so he was pulled out of the seat."],a:0,
+   hint:"Look for the answer that mentions inertia, force on the rider, and an equal and opposite pair.",
+   explain:"All three laws act at once: inertia keeps the rider moving, a net force is needed to change his motion (F = ma), and the bar and rider push on each other in an equal and opposite pair."}
+ ],
+ reveal:{title:"Evidence file: the sabotage log",
+  html:`<p>The ride’s computer log shows the pin was inspected and fine at <b>9:00 PM</b>. The launch button was pressed at exactly <b>9:40:00 PM</b>, and that button only works from inside the <b>control booth</b>. A 12 mm hex key was found on the booth floor, so the person who pulled the pin also pressed the button.</p>
+  <p><b>The culprit stood in the control booth at 9:40:00.</b> Now we need to find out who could have been there.</p>`,
+  clear:[]},
+ proof:"The pin was pulled by hand and the launch button was pressed at 9:40:00 PM, so the culprit stood in the control booth. Newton’s three laws explain why the missing pin was deadly."
+},
+{
+ n:2, icon:"⛏️", title:"The Cavern of Layers", teks:"6.10B",
+ teksText:"Model and describe the layers of Earth: inner core, outer core, mantle, and crust.",
+ brief:`<p>Dr. Quartz’s Cavern of Layers is a walk-through model of the Earth. At the back is a locked safe with a keypad that says: <i>“Prove you know the layers.”</i> Deputy Dara thinks the safe holds the victim’s papers. Crack the layer lock and find out.</p>`,
+ evidence:()=>earthModel(),
+ qs:[
+  {type:"order", q:"Click the Earth’s layers in order, starting at the surface and ending at the center.",
+   items:["Crust","Mantle","Outer core","Inner core"],
+   hint:"The crust is the thin outside layer. The solid ball of metal is at the very center.",
+   explain:"From the surface to the center: crust, mantle, outer core, inner core."},
+  {q:"On the placard, Layer C is liquid iron and nickel. Which Earth layer is it?",
+   opts:["Outer core","Inner core","Mantle","Crust"],a:0,
+   hint:"Only one layer of Earth is liquid. It sits just outside the center.",
+   explain:"The outer core is liquid iron and nickel. Its movement helps create Earth’s magnetic field."},
+  {q:"Layer D is the hottest layer, over 5,000 °C, yet it is solid. What keeps it solid?",
+   opts:["The enormous pressure from all the layers above it","It is too cold to melt","Water mixed into the metal","Earth’s magnetic field freezes it"],a:0,
+   hint:"Pressure can keep a material solid even when it is extremely hot.",
+   explain:"The inner core is solid because the pressure at Earth’s center is immense, even though the temperature is very high."},
+  {q:"Layer B is about 2,900 km thick, the thickest layer. Which layer is it, and how can you describe it?",
+   opts:["Mantle: hot rock that flows very slowly","Crust: thin, cool, solid rock","Outer core: liquid metal","Inner core: a solid metal ball"],a:0,
+   hint:"The thickest layer lies directly under the crust.",
+   explain:"The mantle is the thickest layer. It is hot, solid rock that flows very slowly over millions of years."}
+ ],
+ reveal:{title:"Evidence file: the safe is open",
+  html:`<p>The keypad clicks and the door swings open. Inside is Barnaby Bonesworth’s new will, dated October 30:</p>
+  <div class="note">“I am leaving Mesquite Hollow to the Calavera Springs Science Museum. <b>Dexter gets nothing.</b> Rex is fired. Madame Marigold’s tent lease ends. Gus loses his stand. And I will blast open Dr. Quartz’s cavern to build a new ride.”</div>
+  <p>That means <b>all five suspects had a motive</b>. Motive is not enough. Only science can sort out who was really in the control booth.</p>`,
+  clear:[]},
+ proof:"The new will gave all five suspects a motive, so motive could not solve the case. (Earth’s layers: crust, mantle, outer core, inner core.)"
+},
+{
+ n:3, icon:"⏱️", title:"The Alibi Timer", teks:"7.7A",
+ teksText:"Calculate average speed using distance and time measurements.",
+ brief:`<p>The culprit pressed the launch button at <b>9:40:00 PM</b>. Each suspect left a trail: a receipt, a camera frame, or a sign-in sheet. Use the distance and the time left before 9:40:00 to find the <b>average speed</b> each suspect would have needed.</p>`,
+ evidence:()=>`<h3>Last confirmed sighting of each suspect</h3>
+  <div class="scroll"><table class="tbl"><tr><th>Suspect</th><th>Proof</th><th>Time</th><th>Distance from booth</th></tr>
+  <tr><td>Gus</td><td>Funnel Cake Stand card reader</td><td>9:38:40 PM</td><td>480 m</td></tr>
+  <tr><td>Dr. Quartz</td><td>Cavern sign-in sheet</td><td>9:37:20 PM</td><td>720 m</td></tr>
+  <tr><td>Marigold</td><td>Crystal-ball receipt</td><td>9:34:00 PM</td><td>360 m</td></tr>
+  <tr><td>Rex</td><td>Barn door camera</td><td>9:37:00 PM</td><td>180 m</td></tr>
+  <tr><td>Dexter</td><td>Gift shop register</td><td>9:30:00 PM</td><td>270 m</td></tr></table></div>
+  <div class="note"><b>Park speed limit:</b> carts are governed to 4.0 m/s, and nobody can run faster than that for hundreds of meters. Average speed = distance ÷ time.</div>`,
+ qs:[
+  {q:"Gus’s receipt is from 9:38:40 PM and he was 480 m from the booth. The launch was at 9:40:00 PM. What average speed would he need to reach the booth in time?",
+   opts:["0.17 m/s","6.0 m/s","400 m/s","38,400 m/s"],a:1,
+   hint:"First find the time gap in seconds (9:38:40 to 9:40:00), then divide distance by time.",
+   explain:"The gap is 80 seconds. Speed = 480 m ÷ 80 s = 6.0 m/s."},
+  {q:"Dr. Quartz signed in at 9:37:20 PM, 720 m from the booth. What average speed would she need to be in the booth at 9:40:00 PM?",
+   opts:["0.22 m/s","4.5 m/s","9.0 m/s","560 m/s"],a:1,
+   hint:"The time gap is 2 minutes 40 seconds. Change it to seconds before dividing.",
+   explain:"The gap is 160 seconds. Speed = 720 m ÷ 160 s = 4.5 m/s."},
+  {q:"Nobody can travel faster than 4.0 m/s in the park. Which suspects could NOT have reached the booth by 9:40:00?",
+   opts:["Only Gus","Gus and Dr. Quartz","Marigold and Rex","Nobody can be ruled out"],a:1,
+   hint:"Compare each needed speed to the 4.0 m/s limit. The needed speeds for the other three suspects are listed in the explanation after you answer.",
+   explain:"Gus needed 6.0 m/s and Dr. Quartz needed 4.5 m/s, both over the limit. Marigold needed 360 m ÷ 360 s = 1.0 m/s, Rex 180 m ÷ 180 s = 1.0 m/s, and Dexter 270 m ÷ 600 s = 0.45 m/s."}
+ ],
+ reveal:{title:"Evidence file: two alibis hold up",
+  html:`<p>Gus and Dr. Quartz were simply too far away. The math shows they would have needed to travel faster than anyone can in this park. <b>Three suspects remain.</b></p>`,
+  clear:[{id:"gus",why:"Needed 6.0 m/s to reach the booth. The limit is 4.0 m/s."},{id:"quartz",why:"Needed 4.5 m/s to reach the booth. The limit is 4.0 m/s."}]},
+ proof:"Gus needed 6.0 m/s and Dr. Quartz needed 4.5 m/s to reach the booth, but nobody can exceed 4.0 m/s, so both were cleared."
+},
+{
+ n:4, icon:"⚰️", title:"The Coffin Chest", teks:"6.7B",
+ teksText:"Calculate the net force on an object in a horizontal or vertical direction using diagrams and determine if the forces are balanced or unbalanced.",
+ brief:`<p>Park rules say the control booth door is barricaded by the heavy <b>Coffin Chest</b> whenever the ride is closed. Tonight the chest was found dragged 2 m away from the door. Someone had to move it to get inside.</p>
+ <p>Use force diagrams to figure out how hard that someone had to push.</p>`,
+ evidence:()=>`<p class="sans">The chest weighs 900 N. While it was being dragged, the floor’s <b>friction</b> pulled against the motion with <b>420 N</b>. The Strongman Booth keeps records of the hardest steady push each remaining suspect can make:</p>
+  <div class="scroll"><table class="tbl"><tr><th>Suspect</th><th>Hardest steady push</th></tr>
+  <tr><td>Marigold</td><td>350 N</td></tr><tr><td>Rex</td><td>650 N</td></tr><tr><td>Dexter</td><td>520 N</td></tr></table></div>`,
+ qs:[
+  {q:"Someone pushed the chest to the right with 600 N while friction pulled to the left with 420 N. What was the net force, and were the forces balanced?",
+   visual:fbdNet,
+   opts:["180 N to the right; unbalanced","1,020 N to the right; unbalanced","180 N to the left; unbalanced","0 N; balanced"],a:0,
+   hint:"The forces act in opposite directions, so subtract the smaller from the larger. The net force points the way of the larger force.",
+   explain:"600 N − 420 N = 180 N to the right. The forces are unbalanced, so the chest accelerates to the right."},
+  {q:"Before it was moved, the chest sat still. The floor pushed up with 900 N and gravity pulled down with 900 N. What is the net vertical force?",
+   visual:fbdVert,
+   opts:["0 N; the vertical forces are balanced","1,800 N upward; unbalanced","900 N downward; unbalanced","900 N upward; unbalanced"],a:0,
+   hint:"Equal forces in opposite directions cancel out.",
+   explain:"900 N up and 900 N down cancel, so the net force is 0 N. Balanced forces mean no change in vertical motion."},
+  {q:"To start the chest sliding, the push must beat the 420 N of friction so the forces are unbalanced. Of the three suspects still on the board, who could NOT have moved it?",
+   opts:["Marigold (350 N)","Rex (650 N)","Dexter (520 N)","All three could have moved it"],a:0,
+   hint:"Compare each suspect’s hardest push with 420 N. Whose push is smaller than the friction?",
+   explain:"Marigold’s 350 N is less than 420 N, so the net force on the chest would be zero and it would not budge. Rex (650 N) and Dexter (520 N) are both strong enough."}
+ ],
+ reveal:{title:"Evidence file: not strong enough",
+  html:`<p>Madame Marigold could not have dragged the Coffin Chest away from the door. <b>Two suspects remain: Rex and Dexter.</b></p>`,
+  clear:[{id:"marigold",why:"Her best push (350 N) is less than the 420 N of friction, so the chest would not move."}]},
+ proof:"Dragging the chest took more than 420 N of push. Marigold’s best push was 350 N, so she was cleared."
+},
+{
+ n:5, icon:"⌚", title:"The Wristband Graph", teks:"7.7C",
+ teksText:"Measure, record, and interpret an object’s motion using distance-time graphs.",
+ brief:`<p>Only the ride crew wear tracker wristbands, and Rex is the only crew member among the suspects. The band records how far its wearer is from the control booth. It sounds an alarm if it is removed, and <b>no alarm sounded</b> tonight.</p>
+ <p>Rex says he was in the barn. His wristband graph can check his story.</p>`,
+ evidence:()=>graphRex(),
+ qs:[
+  {q:"Look at the flat part of the line from 9:24 PM to 9:45 PM. What does a flat line on a distance-time graph tell you?",
+   opts:["Rex was not moving; his speed was 0 m/s","Rex was moving at a constant fast speed","Rex was speeding up","Rex was moving toward the booth"],a:0,
+   hint:"If the distance from the booth does not change as time passes, what is the speed?",
+   explain:"A flat line means the distance is not changing, so the speed is 0 m/s. Rex stayed in one spot."},
+  {q:"From 9:20 PM to 9:24 PM Rex moved from 360 m to 180 m from the booth. What was his average speed during those 4 minutes?",
+   opts:["0.75 m/s","1.33 m/s","45 m/s","180 m/s"],a:0,
+   hint:"Speed = distance moved ÷ time. Convert 4 minutes to seconds first.",
+   explain:"He moved 360 − 180 = 180 m in 4 × 60 = 240 s. Speed = 180 m ÷ 240 s = 0.75 m/s. This is the slope of the sloped part of the line."},
+  {q:"Where was Rex at 9:40 PM, and could he have pressed the launch button?",
+   opts:["180 m from the booth, so no; he would have needed to be at 0 m","0 m from the booth, so yes","360 m from the booth, so no","180 m from the booth, so yes"],a:0,
+   hint:"Find 9:40 on the horizontal axis, go up to the line, and read across to the distance. Where is the control booth on this graph?",
+   explain:"At 9:40 the graph shows 180 m from the booth. The booth is at 0 m, so Rex could not have been there."}
+ ],
+ reveal:{title:"Evidence file: Rex stayed put",
+  html:`<p>The barn’s door camera backs up the graph: Rex never left. <b>Only one suspect is left standing.</b> But a good detective needs more than “the last one left.” Let’s collect proof.</p>`,
+  clear:[{id:"rex",why:"His graph is flat at 180 m from 9:24 to 9:45 PM. He was not in the booth."}]},
+ proof:"Rex’s distance-time graph is a flat line at 180 m from 9:24 to 9:45 PM, so he stayed in the barn and was cleared."
+},
+{
+ n:6, icon:"🛺", title:"The Getaway Cart", teks:"8.7A",
+ teksText:"Calculate and analyze how the acceleration of an object depends on the net force on the object and its mass using Newton’s 2nd law.",
+ brief:`<p>A security camera caught a cart pulling away from the service lane behind the control booth right after the launch. Video analysis shows it sped up at <b>2.0 m/s²</b>.</p>
+ <p>Every suspect owns a cart. The lab measured each cart’s net force when the driver floors it, and its mass with the driver aboard. Newton’s 2nd law says <b>a = F<sub>net</sub> ÷ m</b>.</p>`,
+ evidence:()=>`<div class="scroll"><table class="tbl"><tr><th>Owner</th><th>Cart</th><th>Net force (N)</th><th>Mass with driver (kg)</th></tr>
+  <tr><td>Marigold</td><td>Fog Wagon</td><td>200</td><td>160</td></tr>
+  <tr><td>Gus</td><td>Funnel Cart</td><td>300</td><td>200</td></tr>
+  <tr><td>Dr. Quartz</td><td>Rock Hauler</td><td>750</td><td>250</td></tr>
+  <tr><td>Rex</td><td>Tool Buggy</td><td>600</td><td>150</td></tr>
+  <tr><td>Dexter</td><td>Gift Shop Golf Cart</td><td>900</td><td>450</td></tr></table></div>`,
+ qs:[
+  {q:"What is the acceleration of Rex’s Tool Buggy?",
+   opts:["0.25 m/s²","4.0 m/s²","90,000 m/s²","450 m/s²"],a:1,
+   hint:"Use a = F ÷ m with F = 600 N and m = 150 kg.",
+   explain:"a = 600 N ÷ 150 kg = 4.0 m/s²."},
+  {q:"The getaway cart accelerated at 2.0 m/s². Calculate each cart’s acceleration. Whose cart matches?",
+   opts:["Marigold’s Fog Wagon","Gus’s Funnel Cart","Rex’s Tool Buggy","Dexter’s Gift Shop Golf Cart"],a:3,
+   hint:"Divide net force by mass for each cart. Only one answer comes out to exactly 2.0 m/s².",
+   explain:"Marigold 200 ÷ 160 = 1.25, Gus 300 ÷ 200 = 1.5, Dr. Quartz 750 ÷ 250 = 3.0, Rex 600 ÷ 150 = 4.0, and Dexter 900 ÷ 450 = 2.0 m/s². Only Dexter’s cart matches."},
+  {q:"Dexter’s cart has a net force of 900 N. If his friends climbed aboard and the mass became 600 kg, what would happen to its acceleration?",
+   opts:["It would decrease to 1.5 m/s²","It would increase to 3.0 m/s²","It would stay at 2.0 m/s²","It would become 0 m/s²"],a:0,
+   hint:"With the same force, a larger mass gives a smaller acceleration.",
+   explain:"a = 900 N ÷ 600 kg = 1.5 m/s². More mass with the same net force means less acceleration."}
+ ],
+ reveal:{title:"Evidence file: the cart match",
+  html:`<p>Only <b>Dexter’s golf cart</b> accelerates at 2.0 m/s². Dexter now stands out as the prime suspect, but he claims the earthquake caused the accident. One last station can test that story.</p>`,
+  clear:[], flag:[{id:"dexter",why:"His cart is the only one that accelerates at 2.0 m/s², like the getaway cart."}]},
+ proof:"The getaway cart accelerated at 2.0 m/s². Only Dexter’s cart matches (900 N ÷ 450 kg = 2.0 m/s²)."
+},
+{
+ n:7, icon:"🌋", title:"The Rumble", teks:"7.10B",
+ teksText:"Describe how plate tectonics causes ocean basin formation, earthquakes, mountain building, and volcanic eruptions, including supervolcanoes and hot spots.",
+ brief:`<p>At 9:41 PM a tremor rattled Calavera Springs. Dexter told the sheriff, “That earthquake shook the ride apart!” The seismograph in the park office recorded the event. Before testing his claim, make sure you understand what causes earthquakes and other plate tectonic events.</p>`,
+ evidence:()=>seismo(),
+ qs:[
+  {q:"What causes most earthquakes?",
+   opts:["Rock along a fault suddenly slips, releasing stress built up by moving plates","Heavy rain soaking into the soil","The Moon’s gravity pulling on the ocean","Wind blowing against mountains"],a:0,
+   hint:"Earth’s plates are always slowly moving. What happens when the stress between them builds up and is suddenly released?",
+   explain:"Plate motion builds stress in rock along faults. When the rock suddenly slips, that energy is released as seismic waves we feel as an earthquake."},
+  {q:"How do mountain ranges like the Himalayas form?",
+   opts:["Two continental plates collide at a convergent boundary and crumple the crust upward","Two plates pull apart and the crust sinks","A hot spot melts the ocean floor","Wind and rain build up sand"],a:0,
+   hint:"Think about what happens when two plates push toward each other.",
+   explain:"At a convergent boundary, colliding plates push the crust up and fold it into mountain ranges such as the Himalayas."},
+  {q:"How can an ocean basin form and grow wider, like the Atlantic Ocean?",
+   opts:["Plates pull apart at a divergent boundary, and magma rises to make new ocean floor","Two plates slide past each other and create a canyon","Plates collide and push the crust down into the mantle","Ocean water erodes a hole in the continent"],a:0,
+   hint:"Which kind of boundary creates new crust: one where plates collide, slide, or move apart?",
+   explain:"At divergent boundaries such as the mid-ocean ridge, plates move apart and magma fills the gap, creating new seafloor and widening the ocean basin."},
+  {q:"Which statement describes a hot spot, like the one that built the Hawaiian Islands or powers the Yellowstone supervolcano?",
+   opts:["A plume of hot mantle rock rises beneath a plate, and eruptions form volcanoes as the plate moves over it","The place where two plates collide and make mountains","A crack where plates pull apart on the ocean floor","A volcano made by a meteorite impact"],a:0,
+   hint:"A hot spot stays in one place in the mantle while the plate above it keeps moving.",
+   explain:"A hot spot is a stationary plume of hot mantle rock. As a plate moves over it, volcanoes form, making island chains like Hawaii. Some hot spots, like Yellowstone, are linked to supervolcanoes."},
+  {q:"The ride log shows the launch at 9:40:00 PM. The seismograph shows the first tremor at 9:41:20 PM. Dexter said the earthquake caused the ride to fail. What does the evidence show?",
+   visual:seismo,
+   opts:["The tremor began 80 seconds after the launch, so it could not have caused the failure. Dexter’s story is false","The quake and the launch happened at the same time, so the quake caused it","The graph is too noisy to tell anything","Earthquakes always cause rides to fail"],a:0,
+   hint:"A cause has to happen before its effect. Which came first, the launch or the tremor?",
+   explain:"The launch (9:40:00) happened 80 seconds before the first tremor (9:41:20). An effect cannot come before its cause, so the earthquake could not have caused the failure."}
+ ],
+ reveal:{title:"Evidence file: Dexter’s story falls apart",
+  html:`<p>The tremor started <b>after</b> the ride launched. Dexter blamed a natural event that had not happened yet. Madame Marigold blamed the spirits, but she was cleared long ago. <b>Time to make your accusation.</b></p>`,
+  clear:[], flag:[{id:"dexter",why:"His earthquake excuse is false: the tremor began 80 seconds after the launch."}]},
+ proof:"The first tremor was recorded at 9:41:20 PM, 80 seconds after the 9:40:00 launch, so Dexter’s “the earthquake did it” story is false."
+}
+];
+
+const TEKS_LIST = [
+ ["6.7B","Calculate net force and decide whether forces are balanced or unbalanced"],
+ ["6.10B","Model and describe the layers of Earth"],
+ ["7.7A","Calculate average speed from distance and time"],
+ ["7.7C","Measure, record, and interpret motion with distance-time graphs"],
+ ["7.10B","Describe how plate tectonics causes earthquakes, mountain building, ocean basins, and volcanic eruptions"],
+ ["8.7A","Use Newton’s 2nd law to relate acceleration, net force, and mass"],
+ ["8.7B","Describe how Newton’s three laws act at the same time in systems"]
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const KEY="mesquite-hollow-mystery-v1";
+function fresh(){return {name:"",stage:"intro",st:0,qi:0,phase:"brief",misses:0,cleared:{},flags:{},done:0,cer:"",tries:0,accused:[]}}
+function load(){try{const j=localStorage.getItem(KEY);return j?Object.assign(fresh(),JSON.parse(j)):fresh()}catch(e){return fresh()}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let S=load();
+const shuf={};
+const $=s=>document.querySelector(s);
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function go(){save();render();window.scrollTo(0,0)}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  document.body.dataset.stage=S.stage;
+  renderMeter();
+  if(location.hash==="#key"){renderKey();$("#board").style.display="none";return}
+  $("#board").style.display="";
+  if(S.stage==="intro")renderIntro();
+  else if(S.stage==="station")renderStation();
+  else if(S.stage==="final")renderFinal();
+  else renderSolved();
+  renderBoard();
+}
+
+function renderMeter(){
+  let dots="";
+  for(let i=0;i<STATIONS.length;i++){
+    dots+=`<i class="${i<S.done?"on":""} ${(S.stage==="station"&&i===S.st)?"now":""}" title="Station ${i+1}"></i>`;
+  }
+  $("#meter").innerHTML=`<div class="dots" role="img" aria-label="${S.done} of ${STATIONS.length} stations complete">${dots}</div>
+  <span class="miss">Wrong answers: <b>${S.misses}</b></span>`;
+}
+
+function renderBoard(){
+  const b=$("#board");
+  let h=`<h2>Case board</h2>`;
+  SUSPECTS.forEach(s=>{
+    const c=S.cleared[s.id], f=S.flags[s.id];
+    h+=`<div class="sus ${c?"cleared":""} ${(!c&&f)?"prime":""}">
+      ${c?`<span class="stamp">CLEARED</span>`:""}
+      <b>${s.emoji} ${s.name}</b>
+      <small>${s.role}. ${s.place}, ${s.dist} m from the booth.</small>
+      ${c?`<span class="why">${c.why}</span>`:(f?`<span class="why"><b>Prime suspect.</b> ${f}</span>`:`<span class="why">Still a suspect.</span>`)}
+    </div>`;
+  });
+  b.innerHTML=h;
+}
+
+function renderIntro(){
+  let cards=SUSPECTS.map(s=>`<div class="card"><b>${s.emoji} ${s.name}</b><br><span>${s.role}</span><q>${s.say}</q></div>`).join("");
+  $("#app").innerHTML=`<div class="paper">
+    <h2>Case file: the death of Barnaby Bonesworth</h2>
+    <p>It is Halloween night at <b>Mesquite Hollow Haunted Park</b>, outside Calavera Springs, Texas. At exactly <b>9:40:00 PM</b>, the Phantom Freefall tower launched with the park’s owner, Barnaby Bonesworth, in the front seat. His lap bar was not locked. He did not survive.</p>
+    <p>Sheriff Salazar has five suspects, a crowd of nervous guests, and no time. She needs a team of science detectives. Stories can lie, but data cannot.</p>
+    <div class="note sans"><b>How to solve it:</b> Visit seven evidence stations. At each one, answer the science questions correctly to unlock the evidence. You can retry, but wrong answers are counted. When all the evidence is in, make your accusation.</div>
+    <h3>The suspects’ statements</h3>
+    <div class="cards">${cards}</div>
+    <h3>Park map: distance from the control booth</h3>
+    <div class="scroll"><table class="tbl"><tr><th>Place</th><th>Distance from control booth</th></tr>
+    <tr><td>Maintenance Barn</td><td>180 m</td></tr><tr><td>Gift Shop</td><td>270 m</td></tr><tr><td>Fortune Tent</td><td>360 m</td></tr><tr><td>Funnel Cake Stand</td><td>480 m</td></tr><tr><td>Cavern of Layers</td><td>720 m</td></tr></table></div>
+    <h3>Your detective name</h3>
+    <label for="nm" class="sans" style="display:block;margin-bottom:6px">Type your name for your case report:</label>
+    <input id="nm" type="text" maxlength="40" value="${esc(S.name)}" autocomplete="off">
+    <div class="row"><button class="btn" id="start" type="button">Open the case</button></div>
+  </div>`;
+  $("#start").onclick=()=>{S.name=$("#nm").value.trim();S.stage="station";S.st=0;S.qi=0;S.phase="brief";go()};
+}
+
+function stationEvidence(st){
+  if(!st.evidence)return "";
+  const e=typeof st.evidence==="function"?st.evidence():st.evidence;
+  return e?`<div class="evid">${e}</div>`:"";
+}
+
+function renderStation(){
+  const st=STATIONS[S.st];
+  const head=`<div class="paper"><h2>${st.icon} Station ${st.n}: ${st.title}</h2>
+    <p class="sans" style="margin-top:0"><span class="tag">TEKS ${st.teks}</span><span style="font-size:16px">${st.teksText}</span></p>`;
+  if(S.phase==="brief"){
+    $("#app").innerHTML=`${head}${st.brief}${stationEvidence(st)}
+      <div class="row"><button class="btn" id="go" type="button">Start the questions</button></div></div>`;
+    $("#go").onclick=()=>{S.phase="q";S.qi=0;go()};
+    return;
+  }
+  if(S.phase==="reveal"){
+    renderReveal(st);return;
+  }
+  renderQuestion(st,head);
+}
+
+function renderQuestion(st,head){
+  const q=st.qs[S.qi];
+  const key=S.st+"-"+S.qi;
+  let body=`${head}${stationEvidence(st)}<hr style="border:0;border-top:2px solid #b9a97f;margin:18px 0">
+    <div class="qhead"><span>Question ${S.qi+1} of ${st.qs.length}</span><span>Wrong answers so far: <b id="mc">${S.misses}</b></span></div>
+    <div class="qtext">${q.q}</div>${q.visual?q.visual():""}`;
+  if(q.type==="order"){
+    if(!shuf[key])shuf[key]=shuffle(q.items);
+    body+=`<div class="seq" id="seq"></div><div class="pool" id="pool"></div>
+      <div class="row"><button class="btn" id="chk" type="button">Check my order</button><button class="btn ghost" id="clr" type="button">Clear</button></div>
+      <div id="fb"></div></div>`;
+    $("#app").innerHTML=body;
+    let picks=[];
+    const draw=()=>{
+      $("#seq").innerHTML=picks.length?picks.map((p,i)=>`<span class="chip">${i+1}. ${p}</span>`).join(""):`<span class="ph">Your order will appear here. First click the layer at the surface.</span>`;
+      $("#pool").innerHTML=shuf[key].filter(x=>!picks.includes(x)).map(x=>`<button type="button" class="opt" data-v="${x}">${x}</button>`).join("");
+      document.querySelectorAll("#pool .opt").forEach(b=>b.onclick=()=>{picks.push(b.dataset.v);draw()});
+    };
+    draw();
+    $("#clr").onclick=()=>{picks=[];$("#fb").innerHTML="";draw()};
+    $("#chk").onclick=()=>{
+      if(picks.length<q.items.length){$("#fb").innerHTML=`<div class="feedback bad">Place all ${q.items.length} layers before checking.</div>`;return}
+      if(picks.join("|")===q.items.join("|")){
+        correct(q,st);
+        $("#chk").disabled=true;$("#clr").disabled=true;
+        document.querySelectorAll("#pool .opt").forEach(b=>b.disabled=true);
+      }else{
+        miss(q);picks=[];draw();
+      }
+    };
+    return;
+  }
+  if(!shuf[key])shuf[key]=shuffle(q.opts.map((t,i)=>({t,ok:i===q.a})));
+  body+=`<div class="opts" id="opts">${shuf[key].map((o,i)=>`<button type="button" class="opt" data-i="${i}">${o.t}</button>`).join("")}</div><div id="fb"></div></div>`;
+  $("#app").innerHTML=body;
+  document.querySelectorAll("#opts .opt").forEach(b=>b.onclick=()=>{
+    const o=shuf[key][+b.dataset.i];
+    if(o.ok){
+      b.classList.add("right");
+      document.querySelectorAll("#opts .opt").forEach(x=>x.disabled=true);
+      correct(q,st);
+    }else{
+      b.classList.add("wrong");b.disabled=true;miss(q);
+    }
+  });
+}
+
+function miss(q){
+  S.misses++;save();
+  $("#mc").textContent=S.misses;renderMeter();
+  $("#fb").innerHTML=`<div class="feedback bad shake"><b>Not quite.</b> ${q.hint}</div>`;
+}
+function correct(q,st){
+  const last=S.qi>=st.qs.length-1;
+  $("#fb").innerHTML=`<div class="feedback good"><b>Correct!</b> ${q.explain}</div>
+    <div class="row"><button class="btn" id="nx" type="button">${last?"Unlock the evidence":"Next question"}</button></div>`;
+  $("#nx").focus();
+  $("#nx").onclick=()=>{
+    if(last){applyReveal(st);S.phase="reveal";if(S.done<S.st+1)S.done=S.st+1}
+    else S.qi++;
+    go();
+  };
+}
+function applyReveal(st){
+  (st.reveal.clear||[]).forEach(c=>{S.cleared[c.id]={n:st.n,why:c.why}});
+  (st.reveal.flag||[]).forEach(f=>{S.flags[f.id]=f.why});
+}
+function renderReveal(st){
+  const last=S.st>=STATIONS.length-1;
+  $("#app").innerHTML=`<div class="paper"><h2>${st.icon} ${st.reveal.title}</h2>${st.reveal.html}
+    <div class="row"><button class="btn" id="nx" type="button">${last?"Make your accusation":"Go to the next station"}</button></div></div>`;
+  $("#nx").onclick=()=>{
+    if(last){S.stage="final"}
+    else{S.st++;S.qi=0;S.phase="brief"}
+    go();
+  };
+}
+
+let pickId=null;
+function renderFinal(){
+  pickId=null;
+  $("#app").innerHTML=`<div class="paper"><h2>Make your accusation</h2>
+    <p>You have seven pieces of evidence. Sheriff Salazar is waiting. Who stood in the control booth at 9:40:00 PM?</p>
+    <div class="pick" id="pick">${SUSPECTS.map(s=>`<button type="button" class="opt" aria-pressed="false" data-id="${s.id}">${s.emoji} ${s.name} <span style="color:#5a4d63">(${s.role})</span></button>`).join("")}</div>
+    <div id="fb"></div>
+    <div class="row"><button class="btn" id="acc" type="button" disabled>Accuse this suspect</button></div></div>`;
+  document.querySelectorAll("#pick .opt").forEach(b=>b.onclick=()=>{
+    pickId=b.dataset.id;
+    document.querySelectorAll("#pick .opt").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+    $("#acc").disabled=false;
+  });
+  $("#acc").onclick=()=>{
+    const pn=SUSPECTS.find(x=>x.id===pickId).name;
+    (S.accused=S.accused||[]).push(pn);
+    if(pickId==="dexter"){S.stage="solved";go();return}
+    S.misses++;save();renderMeter();
+    const c=S.cleared[pickId];
+    $("#fb").innerHTML=`<div class="feedback bad shake"><b>Not this one.</b> ${c?`Check the case board. This suspect was cleared at Station ${c.n}: ${c.why}`:"Look again at the evidence."}</div>`;
+  };
+}
+
+function rank(){
+  if(S.misses<=4)return "Chief Inspector";
+  if(S.misses<=10)return "Lead Detective";
+  return "Persistent Sleuth";
+}
+function renderSolved(){
+  const proofs=STATIONS.map(s=>`<li><b>Station ${s.n} (${s.teks}):</b> ${s.proof}</li>`).join("");
+  $("#app").innerHTML=`<div class="paper"><h2>Case closed: Dexter Bonesworth did it</h2>
+    <p>Confronted with the evidence, Dexter confessed. He had read the will and knew he was about to lose everything. He pulled the lap bar pin after Rex’s 9:00 inspection, walked to the control booth, dragged the Coffin Chest away from the door, and pressed the launch button at 9:40:00. He escaped in his golf cart and blamed an earthquake that had not happened yet.</p>
+    <p><b>Detective ${esc(S.name||"")}</b>, you finished with <b>${S.misses}</b> wrong answer${S.misses===1?"":"s"}. Your rank: <b>${rank()}</b>.</p>
+    <h3>Your evidence file</h3><ul>${proofs}</ul>
+    <h3>Write your case report</h3>
+    <p class="sans" style="font-size:16px">Write a claim, evidence, and reasoning paragraph. <b>Claim:</b> who did it. <b>Evidence:</b> use at least three pieces of evidence with numbers (a speed, a force, an acceleration, a graph reading, or a time). <b>Reasoning:</b> explain why the science proves it (Newton’s laws, speed = distance ÷ time, or cause comes before effect).</p>
+    <textarea id="cer" aria-label="Claim, evidence, and reasoning">${esc(S.cer||"")}</textarea>
+    <div id="cerPrint"></div>
+    <div class="row"><button class="btn" id="prt" type="button">Print or save my report as a PDF</button></div>
+    <div class="note sans"><b>Before you leave:</b> 1) Click <b>Download my case file</b> and save it (or turn it in as your teacher directs). 2) Then click <b>Finish and clear for the next detective</b>. This erases your name and answers from this computer so the next student can start fresh.</div>
+    <div class="row"><button class="btn" id="dl" type="button">Download my case file</button><button class="btn ghost" id="fin" type="button" disabled>Finish and clear for the next detective</button></div>
+    <div id="dlmsg" class="sans" style="margin-top:8px"></div>
+    <h3>Science standards in this case</h3>
+    <div class="scroll"><table class="tbl">${TEKS_LIST.map(t=>`<tr><td><b>${t[0]}</b></td><td>${t[1]}</td></tr>`).join("")}</table></div>
+  </div>`;
+  $("#cer").oninput=e=>{S.cer=e.target.value;save()};
+  $("#prt").onclick=()=>{$("#cerPrint").textContent=$("#cer").value;window.print()};
+  let downloaded=false;
+  $("#dl").onclick=()=>{
+    S.cer=$("#cer").value;save();
+    downloadCase();downloaded=true;
+    $("#fin").disabled=false;
+    $("#dlmsg").innerHTML="<b>Downloaded.</b> Check your Downloads folder for your case file, then clear this computer.";
+  };
+  $("#fin").onclick=()=>{
+    if(!downloaded){return}
+    if(confirm("This erases your name, answers, and report from this computer. Did your case file download? Clear everything now?")){
+      try{localStorage.removeItem(KEY)}catch(e){}
+      S=fresh();shuf&&Object.keys(shuf).forEach(k=>delete shuf[k]);
+      if(location.hash)history.replaceState(null,"",location.pathname);
+      go();
+    }
+  };
+}
+
+function downloadCase(){
+  const name=S.name||"Detective";
+  const acc=(S.accused&&S.accused.length)?S.accused:["Dexter Bonesworth"];
+  const final=acc[acc.length-1];
+  const wrong=acc.slice(0,-1);
+  const when=new Date().toLocaleString();
+  const proofs=STATIONS.map(s=>`<li><b>Station ${s.n} (TEKS ${s.teks}), ${s.title}:</b> ${s.proof}</li>`).join("");
+  const html=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Case file: ${esc(name)}</title>
+<style>body{font:17px/1.6 Georgia,serif;max-width:780px;margin:30px auto;padding:0 18px;color:#2b2233}h1{font-style:italic}h2{margin-top:1.4em;border-bottom:2px solid #b9a97f}.box{background:#f1e6cc;padding:12px 16px;border-radius:4px}pre{white-space:pre-wrap;font:inherit;background:#fffaf0;border:1px solid #b9a97f;padding:12px;border-radius:4px}</style></head><body>
+<h1>Murder at Mesquite Hollow: Case File</h1>
+<div class="box"><p><b>Detective:</b> ${esc(name)}<br><b>Date completed:</b> ${esc(when)}<br><b>Rank:</b> ${rank()}<br><b>Wrong answers:</b> ${S.misses}</p>
+<p><b>Who I think did it:</b> ${esc(final)}${wrong.length?`<br><b>Earlier wrong accusations:</b> ${esc(wrong.join(", "))}`:""}</p></div>
+<h2>My evidence file</h2><ul>${proofs}</ul>
+<h2>My claim, evidence, and reasoning</h2><pre>${esc(S.cer||"(no report written)")}</pre>
+<h2>Science standards covered</h2><ul>${TEKS_LIST.map(t=>`<li><b>${t[0]}</b>: ${t[1]}</li>`).join("")}</ul>
+</body></html>`;
+  const blob=new Blob([html],{type:"text/html"});
+  const a=document.createElement("a");
+  const safe=name.replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")||"Detective";
+  a.href=URL.createObjectURL(blob);a.download="Mesquite-Hollow-Case-"+safe+".html";
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+}
+
+function renderKey(){
+  let h=`<div class="paper sans"><h2>Teacher answer key</h2>
+  <p><b>Culprit:</b> Dexter Bonesworth. Clearing order: Gus and Dr. Quartz (Station 3), Marigold (Station 4), Rex (Station 5); Dexter confirmed at Stations 6 and 7. Share the page address without “#key”.</p>`;
+  STATIONS.forEach(s=>{
+    h+=`<h3>Station ${s.n}: ${s.title} (TEKS ${s.teks})</h3><ol>`;
+    s.qs.forEach(q=>{
+      const ans=q.type==="order"?q.items.join(" → "):q.opts[q.a];
+      h+=`<li>${q.q}<br><b>Answer:</b> ${ans}<br><i>${q.explain}</i></li>`;
+    });
+    h+=`</ol>`;
+  });
+  h+=`</div>`;
+  $("#app").innerHTML=h;
+}
+
+$("#reset").onclick=()=>{
+  if(confirm("Start a new case? This clears your saved progress on this computer.")){
+    S=fresh();if(location.hash)history.replaceState(null,"",location.pathname);go();
+  }
+};
+window.addEventListener("hashchange",render);
+render();
+</script>
+</body>
+</html>
