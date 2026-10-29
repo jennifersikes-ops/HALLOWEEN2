@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Murder at Mesquite Hollow: A Science Mystery</title>
+<title>The Last Waltz at Bluebonnet Manor: A Halloween Mystery</title>
 <style>
 :root{
   --dusk:#1b1027; --dusk2:#2a1840; --panel:#241635; --line:#4a3366;
@@ -132,359 +132,257 @@ textarea{width:100%;min-height:150px;font:16px/1.5 "Trebuchet MS",system-ui,sans
 <body>
 <header class="top">
   <div class="brand">
-    <h1>Murder at Mesquite Hollow</h1>
-    <p>A Halloween science mystery set in Calavera Springs, Texas</p>
+    <h1>The Last Waltz at Bluebonnet Manor</h1>
+    <p>A Halloween murder mystery set in Calavera Springs, Texas</p>
   </div>
   <div class="meter" id="meter"></div>
 </header>
 <main class="wrap">
   <section id="app" aria-live="polite"></section>
-  <aside id="board" aria-label="Case board"></aside>
+  <aside id="board" aria-label="Suspect board"></aside>
 </main>
 <div class="foot"><button id="reset" type="button">Start a new case (clears saved progress)</button></div>
-
 <script>
 "use strict";
 
 /* ============================================================
-   DATA
+   DATA: The Last Waltz at Bluebonnet Manor
    ============================================================ */
 const SUSPECTS = [
-  {id:"marigold", name:"Madame Marigold Voss", role:"Fortune teller", emoji:"🔮", place:"Fortune Tent", dist:360,
-   say:"I was in my tent reading palms all night. When the ground rumbled, I knew the spirits were angry!"},
-  {id:"gus", name:"Gus “Grizzly” Garza", role:"Funnel-cake vendor", emoji:"🍩", place:"Funnel Cake Stand", dist:480,
-   say:"I was frying funnel cakes. Ask anybody with powdered sugar on their shirt!"},
-  {id:"quartz", name:"Dr. Ophelia Quartz", role:"Geologist, Cavern of Layers", emoji:"⛏️", place:"Cavern of Layers", dist:720,
-   say:"I never leave my cavern when there are rock samples to study."},
-  {id:"rex", name:"Rex Ramírez", role:"Ride mechanic", emoji:"🔧", place:"Maintenance Barn", dist:180,
-   say:"I checked that ride at nine o’clock sharp. After that I was rebuilding a motor in the barn."},
-  {id:"dexter", name:"Dexter Bonesworth", role:"Nephew of the victim", emoji:"🧛", place:"Gift Shop", dist:270,
-   say:"I was counting souvenirs in the gift shop. That earthquake must have shaken the ride apart. It was a tragic accident!"}
+  {id:"seraphina", name:"Lady Seraphina Black", role:"Ambrose’s cousin, dressed as a vampire", emoji:"🦇",
+   claim:"In the ballroom, dancing and posing in the photo booth.",
+   say:"I was in the ballroom the whole time. There are photo strips of me to prove it!"},
+  {id:"rosie", name:"Rosie Ortega", role:"The caterer, dressed as a skeleton", emoji:"💀",
+   claim:"In the kitchen plating desserts.",
+   say:"I was in the kitchen plating desserts. Ask the oven, it keeps track!"},
+  {id:"barnaby", name:"Professor Barnaby Finch", role:"Family historian, dressed as a mummy", emoji:"📜",
+   claim:"Alone in the garden, looking at the moon.",
+   say:"I was in the garden looking at the moon. Alone, I’m afraid. I am not much for parties."},
+  {id:"wyatt", name:"Wyatt Calloway", role:"The groundskeeper, dressed as a werewolf", emoji:"🐺",
+   claim:"Locking the front gate.",
+   say:"I was locking the front gate for the night, like I do every Halloween."},
+  {id:"penny", name:"Penny Quill", role:"Ambrose’s assistant, dressed as a witch", emoji:"🧙",
+   claim:"Running the music in the ballroom.",
+   say:"I was running the music in the ballroom, same as every year."}
 ];
 
-/* ---------- little SVG helpers ---------- */
-function arrowDefs(id,color){
-  return `<defs><marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${color}"/></marker></defs>`;
-}
-function fbdNet(){
-  return `<svg class="chart" viewBox="0 0 560 230" role="img" aria-label="Force diagram: the chest is pushed right with 600 newtons and friction pulls left with 420 newtons">
-  ${arrowDefs("aR","#c2570a")}${arrowDefs("aL","#3b2a8c")}
-  <rect x="0" y="150" width="560" height="6" fill="#8a7a55"/>
-  <rect x="215" y="85" width="130" height="65" rx="4" fill="#7a4a21" stroke="#2b2233" stroke-width="3"/>
-  <text x="280" y="124" text-anchor="middle" fill="#fff" style="fill:#fff" class="lbl">Coffin Chest</text>
-  <line x1="345" y1="118" x2="520" y2="118" stroke="#c2570a" stroke-width="8" marker-end="url(#aR)"/>
-  <text x="432" y="100" text-anchor="middle" class="lbl">Applied push: 600 N</text>
-  <line x1="215" y1="118" x2="108" y2="118" stroke="#3b2a8c" stroke-width="8" marker-end="url(#aL)"/>
-  <text x="150" y="100" text-anchor="middle" class="lbl">Friction: 420 N</text>
-  </svg>`;
-}
-function fbdVert(){
-  return `<svg class="chart" viewBox="0 0 560 250" role="img" aria-label="Force diagram: the floor pushes up with 900 newtons and gravity pulls down with 900 newtons">
-  ${arrowDefs("aU","#1d6b3f")}${arrowDefs("aD","#8a1f1f")}
-  <rect x="0" y="170" width="560" height="6" fill="#8a7a55"/>
-  <rect x="215" y="95" width="130" height="75" rx="4" fill="#7a4a21" stroke="#2b2233" stroke-width="3"/>
-  <text x="280" y="138" text-anchor="middle" style="fill:#fff" class="lbl">Coffin Chest</text>
-  <line x1="280" y1="95" x2="280" y2="18" stroke="#1d6b3f" stroke-width="8" marker-end="url(#aU)"/>
-  <text x="300" y="38" class="lbl">Normal force (floor pushes up): 900 N</text>
-  <line x1="280" y1="170" x2="280" y2="238" stroke="#8a1f1f" stroke-width="8" marker-end="url(#aD)"/>
-  <text x="300" y="214" class="lbl">Weight (gravity pulls down): 900 N</text>
-  </svg>`;
-}
-function earthModel(){
-  return `<svg class="chart" viewBox="0 0 560 300" role="img" aria-label="Cutaway of a planet with four layers labeled A, B, C and D">
-  <circle cx="150" cy="150" r="135" fill="#b78a5a" stroke="#2b2233" stroke-width="3"/>
-  <circle cx="150" cy="150" r="120" fill="#d9692b" stroke="#2b2233" stroke-width="2"/>
-  <circle cx="150" cy="150" r="68" fill="#f0a830" stroke="#2b2233" stroke-width="2"/>
-  <circle cx="150" cy="150" r="32" fill="#fff2a8" stroke="#2b2233" stroke-width="2"/>
-  <text x="150" y="156" text-anchor="middle" class="lbl">D</text>
-  <text x="150" y="108" text-anchor="middle" class="lbl">C</text>
-  <text x="150" y="53" text-anchor="middle" class="lbl">B</text>
-  <text x="150" y="23" text-anchor="middle" class="lbl" style="fill:#2b2233">A</text>
-  <g font-size="14">
-  <text x="310" y="40"><tspan class="lbl">Layer A:</tspan> 5 to 70 km thick, cool solid rock</text>
-  <text x="310" y="92"><tspan class="lbl">Layer B:</tspan> about 2,900 km thick, hot rock</text>
-  <text x="310" y="108">that flows very slowly</text>
-  <text x="310" y="160"><tspan class="lbl">Layer C:</tspan> about 2,200 km thick,</text>
-  <text x="310" y="176">liquid iron and nickel</text>
-  <text x="310" y="228"><tspan class="lbl">Layer D:</tspan> radius about 1,220 km,</text>
-  <text x="310" y="244">solid iron and nickel, over 5,000 °C</text>
-  </g>
-  <text x="150" y="294" text-anchor="middle" font-size="12">Placard from the Cavern of Layers (not to scale)</text>
-  </svg>`;
-}
-function graphRex(){
-  const W=680,H=360,L=64,R=18,T=18,B=54, pw=W-L-R, ph=H-T-B;
-  const X=m=>L+pw*m/25, Y=d=>T+ph*(1-d/400);
-  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Distance-time graph of Rex's wristband. He moves from 360 m to 180 m from the booth between 9:20 and 9:24 PM, then stays at 180 m until 9:45 PM">`;
-  for(let d=0;d<=400;d+=50){
-    s+=`<line x1="${L}" y1="${Y(d)}" x2="${W-R}" y2="${Y(d)}" class="${d%100===0?'grid':'gridM'}"/>`;
-    if(d%100===0) s+=`<text x="${L-8}" y="${Y(d)+4}" text-anchor="end">${d}</text>`;
-  }
-  for(let m=0;m<=25;m++){
-    s+=`<line x1="${X(m)}" y1="${T}" x2="${X(m)}" y2="${T+ph}" class="${m%5===0?'grid':'gridM'}"/>`;
-    if(m%5===0) s+=`<text x="${X(m)}" y="${T+ph+18}" text-anchor="middle">9:${20+m}</text>`;
-  }
-  s+=`<line x1="${L}" y1="${T}" x2="${L}" y2="${T+ph}" class="axis"/><line x1="${L}" y1="${T+ph}" x2="${W-R}" y2="${T+ph}" class="axis"/>`;
-  s+=`<line x1="${X(20)}" y1="${T}" x2="${X(20)}" y2="${T+ph}" stroke="#b3261e" stroke-width="2" stroke-dasharray="6 5"/>`;
-  s+=`<text x="${X(20)-6}" y="${T+14}" text-anchor="end" style="fill:#b3261e" class="lbl">Ride launch 9:40</text>`;
-  s+=`<polyline points="${X(0)},${Y(360)} ${X(4)},${Y(180)} ${X(25)},${Y(180)}" fill="none" stroke="#c2570a" stroke-width="4" stroke-linejoin="round"/>`;
-  [[0,360],[4,180],[25,180]].forEach(p=>{s+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="5" fill="#2b2233"/>`});
-  s+=`<text x="${(L+W-R)/2}" y="${H-8}" text-anchor="middle" class="lbl">Time (PM)</text>`;
-  s+=`<text transform="translate(16 ${T+ph/2}) rotate(-90)" text-anchor="middle" class="lbl">Distance from control booth (m)</text>`;
-  s+=`</svg>`;
+function mapSvg(){
+  const N=[{k:"lib",x:280,y:150,t:"Library",c:"#f2c14e"},{k:"ball",x:95,y:55,t:"Ballroom"},{k:"kit",x:95,y:245,t:"Kitchen"},{k:"gate",x:465,y:55,t:"Front gate"},{k:"gar",x:465,y:245,t:"Garden"}];
+  const E=[["ball","2 min"],["kit","4 min"],["gate","5 min"],["gar","3 min"]];
+  const g=k=>N.find(n=>n.k===k);
+  let s=`<svg class="chart" viewBox="0 0 560 300" role="img" aria-label="Map of Bluebonnet Manor. Walking time to the library: from the ballroom 2 minutes, from the kitchen 4 minutes, from the front gate 5 minutes, from the garden 3 minutes">`;
+  E.forEach(e=>{const n=g(e[0]);s+=`<line x1="280" y1="150" x2="${n.x}" y2="${n.y}" stroke="#2b2233" stroke-width="3" stroke-dasharray="8 6"/>`});
+  E.forEach(e=>{const n=g(e[0]);const mx=(280+n.x)/2,my=(150+n.y)/2;s+=`<rect x="${mx-30}" y="${my-14}" width="60" height="26" rx="5" fill="#fffaf0" stroke="#2b2233"/><text x="${mx}" y="${my+5}" text-anchor="middle" class="lbl">${e[1]}</text>`});
+  N.forEach(n=>{s+=`<rect x="${n.x-58}" y="${n.y-22}" width="116" height="44" rx="6" fill="${n.c||"#e6d8b8"}" stroke="#2b2233" stroke-width="3"/><text x="${n.x}" y="${n.y+5}" text-anchor="middle" class="lbl">${n.t}</text>`});
+  s+=`<text x="280" y="294" text-anchor="middle">Walking time from each place to the library</text></svg>`;
   return s;
 }
-function seismo(){
-  const W=680,H=240,L=20,R=20,T=20,B=44, pw=W-L-R, mid=T+(H-T-B)/2;
-  const X=t=>L+pw*t/240; // t in seconds from 9:39:00
-  let pts=[];
-  for(let t=0;t<=240;t+=1){
-    const noise=((Math.sin(t*12.9898)*43758.5453)%1);
-    let a=2.5*noise;
-    if(t>140){a+=48*Math.exp(-(t-140)/55)*Math.sin((t-140)*1.7)}
-    pts.push(`${X(t).toFixed(1)},${(mid-a).toFixed(1)}`);
-  }
-  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Seismograph record. A flat trace with tiny wiggles until 9:41:20 PM, then strong shaking">`;
-  s+=`<line x1="${L}" y1="${mid}" x2="${W-R}" y2="${mid}" class="grid"/>`;
-  [["9:39:00",0],["9:40:00",60],["9:41:00",120],["9:42:00",180],["9:43:00",240]].forEach(a=>{
-    s+=`<line x1="${X(a[1])}" y1="${T}" x2="${X(a[1])}" y2="${H-B}" class="gridM"/><text x="${X(a[1])}" y="${H-B+18}" text-anchor="middle">${a[0]}</text>`;
-  });
-  s+=`<line x1="${X(60)}" y1="${T}" x2="${X(60)}" y2="${H-B}" stroke="#b3261e" stroke-width="2" stroke-dasharray="6 5"/>`;
-  s+=`<text x="${X(60)+6}" y="${T+14}" style="fill:#b3261e" class="lbl">Ride launch 9:40:00</text>`;
-  s+=`<line x1="${X(140)}" y1="${T}" x2="${X(140)}" y2="${H-B}" stroke="#3b2a8c" stroke-width="2" stroke-dasharray="6 5"/>`;
-  s+=`<text x="${X(140)+6}" y="${T+14}" style="fill:#3b2a8c" class="lbl">First tremor 9:41:20</text>`;
-  s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#2b2233" stroke-width="1.6"/>`;
-  s+=`<text x="${W/2}" y="${H-6}" text-anchor="middle" class="lbl">Seismograph in the park office (time, PM)</text></svg>`;
-  return s;
+function cipherStrip(){
+  const A="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let top="",bot="";
+  for(let i=0;i<26;i++){top+=`<td>${A[i]}</td>`;bot+=`<td><b>${A[(i+23)%26]}</b></td>`}
+  return `<div class="scroll"><table class="tbl" style="text-align:center"><tr><th>Coded letter</th>${top}</tr><tr><th>Real letter</th>${bot}</tr></table></div>`;
 }
 
-/* ---------- stations ---------- */
 const STATIONS = [
 {
- n:1, icon:"🎢", title:"The Phantom Freefall", teks:"8.7B",
- teksText:"Investigate and describe how Newton’s three laws of motion act at the same time in systems such as vehicle restraints.",
- brief:`<p>The Phantom Freefall is the park’s biggest ride: a car lifts riders up a tall tower, then drops them. Deputy Dara reports that the <b>lap bar’s locking pin was pulled out</b>, so the bar could not hold Barnaby Bonesworth in his seat when the ride launched.</p>
- <p>Before you can chase a culprit, you need to understand why a missing pin matters. Newton’s three laws are all at work in a restraint at the same moment.</p>`,
- evidence:``,
+ n:1, icon:"🕰️", title:"The Stopped Clock", skill:"Time logic",
+ brief:`<p>Marisol the maid found Ambrose Hollowell in the library at <b>9:20 PM</b>. On the floor lay the library’s old clock, smashed, with its hands stopped. Every good case starts with one question: <b>when did it happen?</b></p>`,
+ evidence:()=>`<div class="note"><b>Evidence:</b> The smashed library clock shows <b>9:15</b>.<br><b>Housekeeper’s note:</b> “Every clock in the manor is right, except the library clock. It runs <b>10 minutes fast</b>.”<br><b>Marisol’s phone</b> (correct time) says she found the body at <b>9:20 PM</b>.</div>`,
  qs:[
-  {q:"When the Phantom Freefall car comes to a sudden stop at the bottom, a rider’s body tries to keep moving downward. Which law explains this?",
-   opts:["Newton’s 1st law (inertia)","Newton’s 2nd law (F = ma)","Newton’s 3rd law (action and reaction)","The law of conservation of mass"],a:0,
-   hint:"Think about what an object does when no unbalanced force acts on it, or when the thing carrying it stops.",
-   explain:"Newton’s 1st law: an object keeps its state of motion unless an unbalanced force changes it. The car stops, but the rider’s body keeps going until a force (the lap bar) stops it."},
-  {q:"A working lap bar pushes up on a rider with 900 N of force during the stop. How much force does the rider push on the lap bar, and in which direction?",
-   opts:["900 N, in the opposite direction","0 N, because the bar is not moving","450 N, shared between the rider and the bar","1,800 N, in the same direction"],a:0,
-   hint:"Forces come in pairs. What do you know about the size and direction of the two forces in a pair?",
-   explain:"Newton’s 3rd law: forces come in equal and opposite pairs. If the bar pushes the rider with 900 N, the rider pushes back on the bar with 900 N the other way."},
-  {q:"Which explanation uses all three of Newton’s laws to show why the missing pin was so dangerous?",
-   opts:[
-    "Without the pin, the bar could not push on the rider with the force needed to move him along with the car (2nd law). His body kept its own motion (1st law), and with no bar touching him there was no pair of equal and opposite forces holding him in (3rd law).",
-    "The car pushed on the rider harder than the rider pushed on the car, so the 3rd law was broken.",
-    "Newton’s laws do not apply to rides that are falling, so only gravity mattered.",
-    "A rider with no lap bar has more inertia, so he was pulled out of the seat."],a:0,
-   hint:"Look for the answer that mentions inertia, force on the rider, and an equal and opposite pair.",
-   explain:"All three laws act at once: inertia keeps the rider moving, a net force is needed to change his motion (F = ma), and the bar and rider push on each other in an equal and opposite pair."}
+  {q:"The smashed library clock stopped at 9:15, and it runs 10 minutes fast. What was the real time when it stopped?",
+   opts:["9:05 PM","9:25 PM","9:15 PM","8:55 PM"],a:0,
+   hint:"A fast clock shows a time that is later than the real time. So the real time must be earlier.",
+   explain:"A clock that runs 10 minutes fast shows 9:15 when it is really 9:05."},
+  {q:"Marisol found Ambrose at 9:20 PM (real time). How many minutes passed between the clock stopping and Marisol finding him?",
+   opts:["15 minutes","5 minutes","25 minutes","35 minutes"],a:0,
+   hint:"Use the real time the clock stopped, not the time it showed.",
+   explain:"From 9:05 to 9:20 is 15 minutes."},
+  {q:"A suspect says, “I was dancing in the ballroom at 9:15, so it can’t be me.” Why does this alibi NOT clear the suspect?",
+   opts:["The crime happened at 9:05, so an alibi has to cover 9:05, not 9:15","The ballroom is too far from the library","Dancing is never a good alibi","9:15 is too late in the evening"],a:0,
+   hint:"An alibi only helps if it covers the moment the crime happened.",
+   explain:"The crime happened at 9:05 real time. An alibi for 9:15 says nothing about where the person was at 9:05."}
  ],
- reveal:{title:"Evidence file: the sabotage log",
-  html:`<p>The ride’s computer log shows the pin was inspected and fine at <b>9:00 PM</b>. The launch button was pressed at exactly <b>9:40:00 PM</b>, and that button only works from inside the <b>control booth</b>. A 12 mm hex key was found on the booth floor, so the person who pulled the pin also pressed the button.</p>
-  <p><b>The culprit stood in the control booth at 9:40:00.</b> Now we need to find out who could have been there.</p>`,
+ reveal:{title:"Case note: the real time",
+  html:`<p>The clock lied by ten minutes. <b>The killer was in the library at 9:05 PM.</b> Any alibi has to cover 9:05. Sheriff Salazar has locked the doors. No one is leaving.</p>`,
   clear:[]},
- proof:"The pin was pulled by hand and the launch button was pressed at 9:40:00 PM, so the culprit stood in the control booth. Newton’s three laws explain why the missing pin was deadly."
+ proof:"The library clock runs 10 minutes fast, so it stopped at 9:05 real time. The killer was in the library at 9:05."
 },
 {
- n:2, icon:"⛏️", title:"The Cavern of Layers", teks:"6.10B",
- teksText:"Model and describe the layers of Earth: inner core, outer core, mantle, and crust.",
- brief:`<p>Dr. Quartz’s Cavern of Layers is a walk-through model of the Earth. At the back is a locked safe with a keypad that says: <i>“Prove you know the layers.”</i> Deputy Dara thinks the safe holds the victim’s papers. Crack the layer lock and find out.</p>`,
- evidence:()=>earthModel(),
+ n:2, icon:"🗺️", title:"The Alibi Check", skill:"Alibi math",
+ brief:`<p>Two suspects left trails that the sheriff trusts, because their clocks are correct. Use the map. If someone was far away from the library at one time and again a few minutes later, you can work out whether they had enough time to get to the library at 9:05.</p>`,
+ evidence:()=>`${mapSvg()}<div class="scroll"><table class="tbl"><tr><th>Suspect</th><th>Record (correct clock)</th><th>Times</th></tr>
+ <tr><td>Rosie</td><td>Oven log: door opened in the kitchen</td><td>9:03 PM and 9:07 PM</td></tr>
+ <tr><td>Wyatt</td><td>Gate camera: he is standing at the front gate</td><td>9:02 PM and 9:08 PM</td></tr>
+ <tr><td>Barnaby</td><td>No records. Alone in the garden.</td><td>None</td></tr></table></div>`,
  qs:[
-  {type:"order", q:"Click the Earth’s layers in order, starting at the surface and ending at the center.",
-   items:["Crust","Mantle","Outer core","Inner core"],
-   hint:"The crust is the thin outside layer. The solid ball of metal is at the very center.",
-   explain:"From the surface to the center: crust, mantle, outer core, inner core."},
-  {q:"On the placard, Layer C is liquid iron and nickel. Which Earth layer is it?",
-   opts:["Outer core","Inner core","Mantle","Crust"],a:0,
-   hint:"Only one layer of Earth is liquid. It sits just outside the center.",
-   explain:"The outer core is liquid iron and nickel. Its movement helps create Earth’s magnetic field."},
-  {q:"Layer D is the hottest layer, over 5,000 °C, yet it is solid. What keeps it solid?",
-   opts:["The enormous pressure from all the layers above it","It is too cold to melt","Water mixed into the metal","Earth’s magnetic field freezes it"],a:0,
-   hint:"Pressure can keep a material solid even when it is extremely hot.",
-   explain:"The inner core is solid because the pressure at Earth’s center is immense, even though the temperature is very high."},
-  {q:"Layer B is about 2,900 km thick, the thickest layer. Which layer is it, and how can you describe it?",
-   opts:["Mantle: hot rock that flows very slowly","Crust: thin, cool, solid rock","Outer core: liquid metal","Inner core: a solid metal ball"],a:0,
-   hint:"The thickest layer lies directly under the crust.",
-   explain:"The mantle is the thickest layer. It is hot, solid rock that flows very slowly over millions of years."}
+  {q:"Rosie opened the oven at 9:03 PM and again at 9:07 PM. The kitchen is 4 minutes from the library. Could she have been in the library at 9:05?",
+   opts:["No. At 9:03 she was in the kitchen, and the library is 4 minutes away, so she could not be there by 9:05","Yes. She could have run there and back in 2 minutes","Yes. Four minutes is plenty of time","No, because ovens cannot be opened twice"],a:0,
+   hint:"If she was in the kitchen at 9:03, what is the earliest time she could reach the library?",
+   explain:"Leaving the kitchen at 9:03 she would reach the library at 9:07 at the earliest. She could not be there at 9:05."},
+  {q:"The gate camera shows Wyatt at the front gate at 9:02 PM and 9:08 PM. The gate is 5 minutes from the library. Could he have been in the library at 9:05?",
+   opts:["No. From the gate he needed 5 minutes to reach the library, so the earliest he could arrive was 9:07","Yes. He could have been there and back by 9:08","Yes. Werewolves are fast","No, because the camera was broken"],a:0,
+   hint:"Start from where he was at 9:02 and add the walking time.",
+   explain:"Leaving the gate at 9:02, Wyatt reaches the library at 9:07 at the earliest, which is too late for 9:05."},
+  {q:"Barnaby was alone in the garden, 3 minutes from the library. No camera or person saw him. What can we say?",
+   opts:["His alibi can’t be checked, so he is still a suspect","He is cleared, because the garden is far away","He is guilty, because he has no alibi","He is cleared, because he said he was in the garden"],a:0,
+   hint:"No proof that someone was elsewhere is not the same as proof that they did it.",
+   explain:"With no record, Barnaby’s alibi cannot be confirmed or broken. He stays on the list, but having no alibi is not proof of guilt."}
  ],
- reveal:{title:"Evidence file: the safe is open",
-  html:`<p>The keypad clicks and the door swings open. Inside is Barnaby Bonesworth’s new will, dated October 30:</p>
-  <div class="note">“I am leaving Mesquite Hollow to the Calavera Springs Science Museum. <b>Dexter gets nothing.</b> Rex is fired. Madame Marigold’s tent lease ends. Gus loses his stand. And I will blast open Dr. Quartz’s cavern to build a new ride.”</div>
-  <p>That means <b>all five suspects had a motive</b>. Motive is not enough. Only science can sort out who was really in the control booth.</p>`,
-  clear:[]},
- proof:"The new will gave all five suspects a motive, so motive could not solve the case. (Earth’s layers: crust, mantle, outer core, inner core.)"
+ reveal:{title:"Case note: two alibis hold up",
+  html:`<p>Rosie and Wyatt could not have reached the library by 9:05. <b>Three suspects remain: Seraphina, Barnaby, and Penny.</b></p>`,
+  clear:[{id:"rosie",why:"Oven log: in the kitchen at 9:03, and the library is 4 minutes away."},{id:"wyatt",why:"Gate camera: at the gate at 9:02, and the library is 5 minutes away."}]},
+ proof:"Rosie was in the kitchen at 9:03 (4 minutes away) and Wyatt was at the gate at 9:02 (5 minutes away), so neither could be in the library at 9:05."
 },
 {
- n:3, icon:"⏱️", title:"The Alibi Timer", teks:"7.7A",
- teksText:"Calculate average speed using distance and time measurements.",
- brief:`<p>The culprit pressed the launch button at <b>9:40:00 PM</b>. Each suspect left a trail: a receipt, a camera frame, or a sign-in sheet. Use the distance and the time left before 9:40:00 to find the <b>average speed</b> each suspect would have needed.</p>`,
- evidence:()=>`<h3>Last confirmed sighting of each suspect</h3>
-  <div class="scroll"><table class="tbl"><tr><th>Suspect</th><th>Proof</th><th>Time</th><th>Distance from booth</th></tr>
-  <tr><td>Gus</td><td>Funnel Cake Stand card reader</td><td>9:38:40 PM</td><td>480 m</td></tr>
-  <tr><td>Dr. Quartz</td><td>Cavern sign-in sheet</td><td>9:37:20 PM</td><td>720 m</td></tr>
-  <tr><td>Marigold</td><td>Crystal-ball receipt</td><td>9:34:00 PM</td><td>360 m</td></tr>
-  <tr><td>Rex</td><td>Barn door camera</td><td>9:37:00 PM</td><td>180 m</td></tr>
-  <tr><td>Dexter</td><td>Gift shop register</td><td>9:30:00 PM</td><td>270 m</td></tr></table></div>
-  <div class="note"><b>Park speed limit:</b> carts are governed to 4.0 m/s, and nobody can run faster than that for hundreds of meters. Average speed = distance ÷ time.</div>`,
+ n:3, icon:"📸", title:"Two Clocks Don’t Agree", skill:"Checking the clocks",
+ brief:`<p>Two more alibis need checking. Penny says she was running the music. Seraphina says she was in the ballroom, and she has photo strips. But Marisol warns that <b>not every clock in the manor tells the truth</b>. A detective always checks the clock before trusting the time.</p>`,
+ evidence:()=>`<div class="scroll"><table class="tbl"><tr><th>Suspect</th><th>Record</th><th>Time shown</th></tr>
+ <tr><td>Penny</td><td>DJ touchscreen log: she tapped to change the song (the screen’s clock is correct)</td><td>9:04 PM and 9:06 PM</td></tr>
+ <tr><td>Seraphina</td><td>Photo booth strip: she is in two photos</td><td>9:04 PM and 9:07 PM (booth’s own clock)</td></tr></table></div>
+ <div class="note"><b>Repair ticket found inside the photo booth:</b> “Clock reset error. This booth runs <b>10 minutes slow</b>.”<br>The ballroom is <b>2 minutes</b> from the library.</div>`,
  qs:[
-  {q:"Gus’s receipt is from 9:38:40 PM and he was 480 m from the booth. The launch was at 9:40:00 PM. What average speed would he need to reach the booth in time?",
-   opts:["0.17 m/s","6.0 m/s","400 m/s","38,400 m/s"],a:1,
-   hint:"First find the time gap in seconds (9:38:40 to 9:40:00), then divide distance by time.",
-   explain:"The gap is 80 seconds. Speed = 480 m ÷ 80 s = 6.0 m/s."},
-  {q:"Dr. Quartz signed in at 9:37:20 PM, 720 m from the booth. What average speed would she need to be in the booth at 9:40:00 PM?",
-   opts:["0.22 m/s","4.5 m/s","9.0 m/s","560 m/s"],a:1,
-   hint:"The time gap is 2 minutes 40 seconds. Change it to seconds before dividing.",
-   explain:"The gap is 160 seconds. Speed = 720 m ÷ 160 s = 4.5 m/s."},
-  {q:"Nobody can travel faster than 4.0 m/s in the park. Which suspects could NOT have reached the booth by 9:40:00?",
-   opts:["Only Gus","Gus and Dr. Quartz","Marigold and Rex","Nobody can be ruled out"],a:1,
-   hint:"Compare each needed speed to the 4.0 m/s limit. The needed speeds for the other three suspects are listed in the explanation after you answer.",
-   explain:"Gus needed 6.0 m/s and Dr. Quartz needed 4.5 m/s, both over the limit. Marigold needed 360 m ÷ 360 s = 1.0 m/s, Rex 180 m ÷ 180 s = 1.0 m/s, and Dexter 270 m ÷ 600 s = 0.45 m/s."}
+  {q:"Penny tapped the DJ screen at 9:04 PM and 9:06 PM. The ballroom is 2 minutes from the library. Could she have been in the library at 9:05?",
+   opts:["No. She was at the screen at 9:04 and 9:06. A round trip to the library takes 4 minutes","Yes. She could get there in 2 minutes and still tap again","Yes. The log only shows when the music changed","No. Witches cannot walk through halls"],a:0,
+   hint:"To be in the library at 9:05 she would have to leave the ballroom at 9:03 and could not be back until 9:07.",
+   explain:"She tapped the screen at 9:04 and again at 9:06. A round trip to the library and back takes 4 minutes, but only 2 minutes passed, so she could not have been there at 9:05."},
+  {q:"The photo booth clock runs 10 minutes slow. It stamped Seraphina’s photos 9:04 PM and 9:07 PM. What were the real times?",
+   opts:["9:14 PM and 9:17 PM","8:54 PM and 8:57 PM","9:04 PM and 9:07 PM","9:24 PM and 9:27 PM"],a:0,
+   hint:"A slow clock shows a time that is earlier than the real time. Add the 10 minutes back.",
+   explain:"A slow clock shows too early a time. Add 10 minutes: 9:04 becomes 9:14 and 9:07 becomes 9:17."},
+  {q:"Does the photo booth alibi clear Seraphina for 9:05 PM, the time of the crime?",
+   opts:["No. The photos were taken at 9:14 and 9:17, so nothing shows where she was at 9:05","Yes. She was in photos, so she was in the ballroom all night","Yes. The booth is in the ballroom","No. Photos are never evidence"],a:0,
+   hint:"Compare the real times of the photos with the real time of the crime.",
+   explain:"Both photos were taken after the crime. Her alibi does not cover 9:05, so she is back in the picture."}
  ],
- reveal:{title:"Evidence file: two alibis hold up",
-  html:`<p>Gus and Dr. Quartz were simply too far away. The math shows they would have needed to travel faster than anyone can in this park. <b>Three suspects remain.</b></p>`,
-  clear:[{id:"gus",why:"Needed 6.0 m/s to reach the booth. The limit is 4.0 m/s."},{id:"quartz",why:"Needed 4.5 m/s to reach the booth. The limit is 4.0 m/s."}]},
- proof:"Gus needed 6.0 m/s and Dr. Quartz needed 4.5 m/s to reach the booth, but nobody can exceed 4.0 m/s, so both were cleared."
+ reveal:{title:"Case note: a crack in an alibi",
+  html:`<p>Penny’s alibi is solid. But Seraphina’s “perfect” alibi was an illusion caused by a slow clock. <b>Two suspects remain: Seraphina and Barnaby.</b></p>`,
+  clear:[{id:"penny",why:"DJ log: at the ballroom screen at 9:04 and 9:06. The library trip takes too long."}],
+  flag:[{id:"seraphina",why:"Her photo alibi falls apart. The booth clock runs 10 minutes slow, so the photos were at 9:14 and 9:17."}]},
+ proof:"Penny tapped the ballroom screen at 9:04 and 9:06, so she was cleared. Seraphina’s photos looked like an alibi, but the booth clock was 10 minutes slow, so they were taken at 9:14 and 9:17."
 },
 {
- n:4, icon:"⚰️", title:"The Coffin Chest", teks:"6.7B",
- teksText:"Calculate the net force on an object in a horizontal or vertical direction using diagrams and determine if the forces are balanced or unbalanced.",
- brief:`<p>Park rules say the control booth door is barricaded by the heavy <b>Coffin Chest</b> whenever the ride is closed. Tonight the chest was found dragged 2 m away from the door. Someone had to move it to get inside.</p>
- <p>Use force diagrams to figure out how hard that someone had to push.</p>`,
- evidence:()=>`<p class="sans">The chest weighs 900 N. While it was being dragged, the floor’s <b>friction</b> pulled against the motion with <b>420 N</b>. The Strongman Booth keeps records of the hardest steady push each remaining suspect can make:</p>
-  <div class="scroll"><table class="tbl"><tr><th>Suspect</th><th>Hardest steady push</th></tr>
-  <tr><td>Marigold</td><td>350 N</td></tr><tr><td>Rex</td><td>650 N</td></tr><tr><td>Dexter</td><td>520 N</td></tr></table></div>`,
+ n:4, icon:"🧛", title:"The Witness", skill:"Matching clues",
+ brief:`<p>Marisol was carrying a tray down the hallway at 9:06 PM by her phone’s correct clock. She did not think much of it then, but now she remembers a figure hurrying out of the library.</p>`,
+ evidence:()=>`<div class="note"><b>Marisol’s statement:</b> “I saw someone leave the library in a hurry. They were taller than me. They wore a <b>long black cape with a high collar</b>. No hat.” <br><i>Marisol is 5 ft 8 in tall.</i></div>
+ <div class="scroll"><table class="tbl"><tr><th>Suspect</th><th>Costume</th><th>Height</th></tr>
+ <tr><td>Seraphina</td><td>Vampire: long black cape with a high collar, fangs, no hat</td><td>5 ft 10 in</td></tr>
+ <tr><td>Barnaby</td><td>Mummy: white bandages from head to toe, no cape</td><td>5 ft 3 in</td></tr>
+ <tr><td>Penny</td><td>Witch: black dress, tall pointed hat, broom</td><td>5 ft 5 in</td></tr>
+ <tr><td>Rosie</td><td>Skeleton suit and an apron</td><td>5 ft 6 in</td></tr>
+ <tr><td>Wyatt</td><td>Werewolf: fur mask and gloves</td><td>5 ft 11 in</td></tr></table></div>`,
  qs:[
-  {q:"Someone pushed the chest to the right with 600 N while friction pulled to the left with 420 N. What was the net force, and were the forces balanced?",
-   visual:fbdNet,
-   opts:["180 N to the right; unbalanced","1,020 N to the right; unbalanced","180 N to the left; unbalanced","0 N; balanced"],a:0,
-   hint:"The forces act in opposite directions, so subtract the smaller from the larger. The net force points the way of the larger force.",
-   explain:"600 N − 420 N = 180 N to the right. The forces are unbalanced, so the chest accelerates to the right."},
-  {q:"Before it was moved, the chest sat still. The floor pushed up with 900 N and gravity pulled down with 900 N. What is the net vertical force?",
-   visual:fbdVert,
-   opts:["0 N; the vertical forces are balanced","1,800 N upward; unbalanced","900 N downward; unbalanced","900 N upward; unbalanced"],a:0,
-   hint:"Equal forces in opposite directions cancel out.",
-   explain:"900 N up and 900 N down cancel, so the net force is 0 N. Balanced forces mean no change in vertical motion."},
-  {q:"To start the chest sliding, the push must beat the 420 N of friction so the forces are unbalanced. Of the three suspects still on the board, who could NOT have moved it?",
-   opts:["Marigold (350 N)","Rex (650 N)","Dexter (520 N)","All three could have moved it"],a:0,
-   hint:"Compare each suspect’s hardest push with 420 N. Whose push is smaller than the friction?",
-   explain:"Marigold’s 350 N is less than 420 N, so the net force on the chest would be zero and it would not budge. Rex (650 N) and Dexter (520 N) are both strong enough."}
+  {q:"Which costume matches Marisol’s description: a long black cape with a high collar and no hat?",
+   opts:["Vampire","Mummy","Witch","Skeleton"],a:0,
+   hint:"Check the costume column. Which one has a cape and no hat?",
+   explain:"Only the vampire costume has a long black cape with a high collar and no hat."},
+  {q:"Marisol is 5 ft 8 in and said the person was taller than she is. Of the two suspects still on the board, Seraphina (5 ft 10 in) and Barnaby (5 ft 3 in), who fits?",
+   opts:["Seraphina","Barnaby","Both fit","Neither fits"],a:0,
+   hint:"Compare each suspect’s height with Marisol’s.",
+   explain:"Seraphina is 2 inches taller than Marisol. Barnaby is 5 inches shorter."},
+  {q:"Marisol saw the figure at 9:06 PM (correct clock). Does that fit with the time of the crime?",
+   opts:["Yes. The crime was at 9:05, and she saw someone leave one minute later","No. The crime was at 9:15","No. She should have seen them at 9:20","Yes, but only if the library clock is trusted"],a:0,
+   hint:"Use the real time of the crime you found at Station 1.",
+   explain:"The crime was at 9:05. Seeing someone leave at 9:06 fits the timeline perfectly."}
  ],
- reveal:{title:"Evidence file: not strong enough",
-  html:`<p>Madame Marigold could not have dragged the Coffin Chest away from the door. <b>Two suspects remain: Rex and Dexter.</b></p>`,
-  clear:[{id:"marigold",why:"Her best push (350 N) is less than the 420 N of friction, so the chest would not move."}]},
- proof:"Dragging the chest took more than 420 N of push. Marigold’s best push was 350 N, so she was cleared."
+ reveal:{title:"Case note: the cape",
+  html:`<p>Barnaby is much shorter than the person Marisol saw, and his bandages are white, not a black cape. <b>Only Seraphina matches.</b> But a good detective keeps collecting proof.</p>`,
+  clear:[{id:"barnaby",why:"Too short (5 ft 3 in) and in white bandages, not a long black cape."}],
+  flag:[{id:"seraphina",why:"Her vampire cape and height match the figure Marisol saw leaving the library at 9:06."}]},
+ proof:"Marisol saw a person taller than 5 ft 8 in in a long black cape and no hat at 9:06. Only Seraphina (5 ft 10 in, vampire cape) fits. Barnaby (5 ft 3 in, white bandages) does not."
 },
 {
- n:5, icon:"⌚", title:"The Wristband Graph", teks:"7.7C",
- teksText:"Measure, record, and interpret an object’s motion using distance-time graphs.",
- brief:`<p>Only the ride crew wear tracker wristbands, and Rex is the only crew member among the suspects. The band records how far its wearer is from the control booth. It sounds an alarm if it is removed, and <b>no alarm sounded</b> tonight.</p>
- <p>Rex says he was in the barn. His wristband graph can check his story.</p>`,
- evidence:()=>graphRex(),
+ n:5, icon:"✉️", title:"The Secret Note", skill:"Code breaking",
+ brief:`<p>Under the smashed clock lay a note on pink paper. It is written in a simple code: <b>every letter was moved 3 letters forward in the alphabet</b>. To decode it, move each letter <b>3 letters back</b>. Use the chart to help.</p>`,
+ evidence:()=>`<div class="note" style="font-size:22px;letter-spacing:.06em;text-align:center"><b>VLJQ WKDW ZLOO DQG BRX ZLOO UHJUHW LW</b></div>${cipherStrip()}
+ <p class="sans" style="font-size:16px">The note’s paper is pink and smells of roses. <b>Guest-room stationery:</b> Seraphina’s room has pink, rose-scented paper. Barnaby’s room has plain white paper. Penny’s room has light blue paper.</p>`,
  qs:[
-  {q:"Look at the flat part of the line from 9:24 PM to 9:45 PM. What does a flat line on a distance-time graph tell you?",
-   opts:["Rex was not moving; his speed was 0 m/s","Rex was moving at a constant fast speed","Rex was speeding up","Rex was moving toward the booth"],a:0,
-   hint:"If the distance from the booth does not change as time passes, what is the speed?",
-   explain:"A flat line means the distance is not changing, so the speed is 0 m/s. Rex stayed in one spot."},
-  {q:"From 9:20 PM to 9:24 PM Rex moved from 360 m to 180 m from the booth. What was his average speed during those 4 minutes?",
-   opts:["0.75 m/s","1.33 m/s","45 m/s","180 m/s"],a:0,
-   hint:"Speed = distance moved ÷ time. Convert 4 minutes to seconds first.",
-   explain:"He moved 360 − 180 = 180 m in 4 × 60 = 240 s. Speed = 180 m ÷ 240 s = 0.75 m/s. This is the slope of the sloped part of the line."},
-  {q:"Where was Rex at 9:40 PM, and could he have pressed the launch button?",
-   opts:["180 m from the booth, so no; he would have needed to be at 0 m","0 m from the booth, so yes","360 m from the booth, so no","180 m from the booth, so yes"],a:0,
-   hint:"Find 9:40 on the horizontal axis, go up to the line, and read across to the distance. Where is the control booth on this graph?",
-   explain:"At 9:40 the graph shows 180 m from the booth. The booth is at 0 m, so Rex could not have been there."}
+  {type:"text", q:"Decode the note. Type the whole message (spaces and punctuation don’t matter).",
+   answer:"SIGN THAT WILL AND YOU WILL REGRET IT",
+   hint:"Find each coded letter in the top row of the chart and read the real letter below it. For example, V becomes S and L becomes I.",
+   explain:"The note says: “SIGN THAT WILL AND YOU WILL REGRET IT.” It is a threat about a will."},
+  {q:"The note is on pink, rose-scented paper. Which suspect’s guest-room stationery matches?",
+   opts:["Seraphina","Barnaby","Penny","None of them"],a:0,
+   hint:"Compare the paper description to each guest room.",
+   explain:"Only Seraphina’s room has pink, rose-scented paper."},
+  {q:"Does the note, all by itself, prove that Seraphina was in the library at 9:05?",
+   opts:["No. It links her to the threat, but it takes the time and witness evidence to place her in the library","Yes. A note is the same as a confession","Yes. Anyone with pink paper is guilty","No. Notes are never clues"],a:0,
+   hint:"Think about what the note shows and what it does not show.",
+   explain:"The note links her to the threat and the will. To place her in the library at 9:05, you combine it with the timeline and the witness."}
  ],
- reveal:{title:"Evidence file: Rex stayed put",
-  html:`<p>The barn’s door camera backs up the graph: Rex never left. <b>Only one suspect is left standing.</b> But a good detective needs more than “the last one left.” Let’s collect proof.</p>`,
-  clear:[{id:"rex",why:"His graph is flat at 180 m from 9:24 to 9:45 PM. He was not in the booth."}]},
- proof:"Rex’s distance-time graph is a flat line at 180 m from 9:24 to 9:45 PM, so he stayed in the barn and was cleared."
+ reveal:{title:"Case note: the threat",
+  html:`<p>The note threatens Ambrose over a <b>will</b>. Next, find out what that will meant to each person.</p>`,
+  clear:[], flag:[{id:"seraphina",why:"The threatening note was written on her pink, rose-scented stationery."}]},
+ proof:"The coded note read “Sign that will and you will regret it.” It was written on pink, rose-scented paper that matches only Seraphina’s guest room."
 },
 {
- n:6, icon:"🛺", title:"The Getaway Cart", teks:"8.7A",
- teksText:"Calculate and analyze how the acceleration of an object depends on the net force on the object and its mass using Newton’s 2nd law.",
- brief:`<p>A security camera caught a cart pulling away from the service lane behind the control booth right after the launch. Video analysis shows it sped up at <b>2.0 m/s²</b>.</p>
- <p>Every suspect owns a cart. The lab measured each cart’s net force when the driver floors it, and its mass with the driver aboard. Newton’s 2nd law says <b>a = F<sub>net</sub> ÷ m</b>.</p>`,
- evidence:()=>`<div class="scroll"><table class="tbl"><tr><th>Owner</th><th>Cart</th><th>Net force (N)</th><th>Mass with driver (kg)</th></tr>
-  <tr><td>Marigold</td><td>Fog Wagon</td><td>200</td><td>160</td></tr>
-  <tr><td>Gus</td><td>Funnel Cart</td><td>300</td><td>200</td></tr>
-  <tr><td>Dr. Quartz</td><td>Rock Hauler</td><td>750</td><td>250</td></tr>
-  <tr><td>Rex</td><td>Tool Buggy</td><td>600</td><td>150</td></tr>
-  <tr><td>Dexter</td><td>Gift Shop Golf Cart</td><td>900</td><td>450</td></tr></table></div>`,
+ n:6, icon:"📜", title:"The Will", skill:"Motive logic",
+ brief:`<p>Ambrose’s lawyer, Ms. Delgado, gave the sheriff a letter. A motive is a reason someone might want to do the crime. Work out who gained and who lost.</p>`,
+ evidence:()=>`<div class="note"><b>Letter from Ms. Delgado:</b> “Ambrose planned to sign a new will at <b>9:30 PM tonight</b> in the library.<br><b>Old will:</b> the manor and all the money go to his cousin Seraphina.<br><b>New will:</b> everything goes to the Calavera Springs Public Library, except a $50,000 research grant for Professor Finch.<br>Rosie, Wyatt, and Penny get the same year-end bonus under either will.”</div>`,
  qs:[
-  {q:"What is the acceleration of Rex’s Tool Buggy?",
-   opts:["0.25 m/s²","4.0 m/s²","90,000 m/s²","450 m/s²"],a:1,
-   hint:"Use a = F ÷ m with F = 600 N and m = 150 kg.",
-   explain:"a = 600 N ÷ 150 kg = 4.0 m/s²."},
-  {q:"The getaway cart accelerated at 2.0 m/s². Calculate each cart’s acceleration. Whose cart matches?",
-   opts:["Marigold’s Fog Wagon","Gus’s Funnel Cart","Rex’s Tool Buggy","Dexter’s Gift Shop Golf Cart"],a:3,
-   hint:"Divide net force by mass for each cart. Only one answer comes out to exactly 2.0 m/s².",
-   explain:"Marigold 200 ÷ 160 = 1.25, Gus 300 ÷ 200 = 1.5, Dr. Quartz 750 ÷ 250 = 3.0, Rex 600 ÷ 150 = 4.0, and Dexter 900 ÷ 450 = 2.0 m/s². Only Dexter’s cart matches."},
-  {q:"Dexter’s cart has a net force of 900 N. If his friends climbed aboard and the mass became 600 kg, what would happen to its acceleration?",
-   opts:["It would decrease to 1.5 m/s²","It would increase to 3.0 m/s²","It would stay at 2.0 m/s²","It would become 0 m/s²"],a:0,
-   hint:"With the same force, a larger mass gives a smaller acceleration.",
-   explain:"a = 900 N ÷ 600 kg = 1.5 m/s². More mass with the same net force means less acceleration."}
+  {q:"Who loses the most if the new will is signed?",
+   opts:["Seraphina","Professor Finch","Rosie","Wyatt"],a:0,
+   hint:"Compare what each person gets under the old will and the new will.",
+   explain:"Seraphina would lose the manor and all the money. Everyone else is unchanged or better off."},
+  {q:"Who would be happier if Ambrose stayed alive until 9:30 and signed the new will?",
+   opts:["Professor Finch, because he gets a research grant","Seraphina, because she keeps the money","Rosie, because her bonus gets bigger","Wyatt, because he gets the manor"],a:0,
+   hint:"Who gains something only if the new will is signed?",
+   explain:"Professor Finch gets $50,000 only under the new will, so he wanted Ambrose alive. That is a reason NOT to commit the crime."},
+  {q:"Ambrose died at 9:05 PM, 25 minutes before the 9:30 signing. Does that timing fit someone who wanted to stop the new will?",
+   opts:["Yes. Someone had to act before 9:30, and 9:05 was before the signing","No. 9:05 is after the signing","No. A new will can’t be stopped","Yes, but only if it was Wyatt"],a:0,
+   hint:"Compare 9:05 with 9:30.",
+   explain:"The crime happened 25 minutes before the signing. Whoever wanted to stop the new will had to act before 9:30."}
  ],
- reveal:{title:"Evidence file: the cart match",
-  html:`<p>Only <b>Dexter’s golf cart</b> accelerates at 2.0 m/s². Dexter now stands out as the prime suspect, but he claims the earthquake caused the accident. One last station can test that story.</p>`,
-  clear:[], flag:[{id:"dexter",why:"His cart is the only one that accelerates at 2.0 m/s², like the getaway cart."}]},
- proof:"The getaway cart accelerated at 2.0 m/s². Only Dexter’s cart matches (900 N ÷ 450 kg = 2.0 m/s²)."
+ reveal:{title:"Case note: a motive appears",
+  html:`<p>Only one person had a strong reason to stop the signing: <b>Seraphina</b>. She would lose a fortune. Everyone else was unaffected or even helped by the new will.</p>`,
+  clear:[], flag:[{id:"seraphina",why:"She would lose the manor and the money if the new will were signed at 9:30."}]},
+ proof:"A new will was to be signed at 9:30, and Seraphina would lose the manor and fortune under it. The crime happened at 9:05, in time to stop the signing."
 },
 {
- n:7, icon:"🌋", title:"The Rumble", teks:"7.10B",
- teksText:"Describe how plate tectonics causes ocean basin formation, earthquakes, mountain building, and volcanic eruptions, including supervolcanoes and hot spots.",
- brief:`<p>At 9:41 PM a tremor rattled Calavera Springs. Dexter told the sheriff, “That earthquake shook the ride apart!” The seismograph in the park office recorded the event. Before testing his claim, make sure you understand what causes earthquakes and other plate tectonic events.</p>`,
- evidence:()=>seismo(),
+ n:7, icon:"🗣️", title:"The Slip of the Tongue", skill:"Spotting the slip",
+ brief:`<p>Sheriff Salazar gathered everyone at 9:50 PM and said only this: <i>“Mr. Hollowell has died. No one leaves.”</i> She did not say <b>where</b> or <b>how</b>. Only Marisol and the sheriff knew about the library and the smashed clock. Then each suspect spoke. Read carefully. One of them knows too much.</p>`,
+ evidence:()=>`<div class="cards">${SUSPECTS.map(s=>`<div class="card"><b>${s.emoji} ${s.name}</b><q>${({
+  seraphina:"Poor Ambrose. Alone in his library, with that beautiful old clock smashed on the floor. How could anyone do this?",
+  rosie:"Oh no. I hope the guests do not think it was the food!",
+  barnaby:"I am shocked. Ambrose and I were friends for forty years.",
+  wyatt:"The gate is locked. Nobody gets out until the sheriff says so.",
+  penny:"Poor Ambrose. Is there anything I can do for the family?"})[s.id]}</q></div>`).join("")}</div>`,
  qs:[
-  {q:"What causes most earthquakes?",
-   opts:["Rock along a fault suddenly slips, releasing stress built up by moving plates","Heavy rain soaking into the soil","The Moon’s gravity pulling on the ocean","Wind blowing against mountains"],a:0,
-   hint:"Earth’s plates are always slowly moving. What happens when the stress between them builds up and is suddenly released?",
-   explain:"Plate motion builds stress in rock along faults. When the rock suddenly slips, that energy is released as seismic waves we feel as an earthquake."},
-  {q:"How do mountain ranges like the Himalayas form?",
-   opts:["Two continental plates collide at a convergent boundary and crumple the crust upward","Two plates pull apart and the crust sinks","A hot spot melts the ocean floor","Wind and rain build up sand"],a:0,
-   hint:"Think about what happens when two plates push toward each other.",
-   explain:"At a convergent boundary, colliding plates push the crust up and fold it into mountain ranges such as the Himalayas."},
-  {q:"How can an ocean basin form and grow wider, like the Atlantic Ocean?",
-   opts:["Plates pull apart at a divergent boundary, and magma rises to make new ocean floor","Two plates slide past each other and create a canyon","Plates collide and push the crust down into the mantle","Ocean water erodes a hole in the continent"],a:0,
-   hint:"Which kind of boundary creates new crust: one where plates collide, slide, or move apart?",
-   explain:"At divergent boundaries such as the mid-ocean ridge, plates move apart and magma fills the gap, creating new seafloor and widening the ocean basin."},
-  {q:"Which statement describes a hot spot, like the one that built the Hawaiian Islands or powers the Yellowstone supervolcano?",
-   opts:["A plume of hot mantle rock rises beneath a plate, and eruptions form volcanoes as the plate moves over it","The place where two plates collide and make mountains","A crack where plates pull apart on the ocean floor","A volcano made by a meteorite impact"],a:0,
-   hint:"A hot spot stays in one place in the mantle while the plate above it keeps moving.",
-   explain:"A hot spot is a stationary plume of hot mantle rock. As a plate moves over it, volcanoes form, making island chains like Hawaii. Some hot spots, like Yellowstone, are linked to supervolcanoes."},
-  {q:"The ride log shows the launch at 9:40:00 PM. The seismograph shows the first tremor at 9:41:20 PM. Dexter said the earthquake caused the ride to fail. What does the evidence show?",
-   visual:seismo,
-   opts:["The tremor began 80 seconds after the launch, so it could not have caused the failure. Dexter’s story is false","The quake and the launch happened at the same time, so the quake caused it","The graph is too noisy to tell anything","Earthquakes always cause rides to fail"],a:0,
-   hint:"A cause has to happen before its effect. Which came first, the launch or the tremor?",
-   explain:"The launch (9:40:00) happened 80 seconds before the first tremor (9:41:20). An effect cannot come before its cause, so the earthquake could not have caused the failure."}
+  {q:"Which suspect said something that only someone who had been in the library could know?",
+   opts:["Seraphina","Barnaby","Penny","Rosie"],a:0,
+   hint:"Remember what the sheriff said, and did not say. Who mentioned a place and an object?",
+   explain:"Seraphina described where Ambrose was and the smashed clock. The sheriff never told anyone those details."},
+  {q:"Which details gave it away?",
+   opts:["She said he was in the library and mentioned the smashed clock, and nobody had told her","She said she was sad","She called him by his first name","She was dressed as a vampire"],a:0,
+   hint:"Look for details that were never announced.",
+   explain:"The library and the smashed clock were known only to the sheriff, Marisol, and the person who was there."},
+  {q:"Which summary is the strongest case against Seraphina?",
+   opts:["Her photo alibi fails once the clock is fixed, a witness saw a tall figure in a black cape, the threat note matches her paper, she had a motive to stop the will, and she knew details only the killer could know","She is the richest suspect","She seemed too sad at the party","She was the only one dressed as a vampire"],a:0,
+   hint:"The best case uses several different kinds of evidence that all agree.",
+   explain:"Good detectives combine timeline, witness, physical clues, motive, and a slip of the tongue. They all point the same way."}
  ],
- reveal:{title:"Evidence file: Dexter’s story falls apart",
-  html:`<p>The tremor started <b>after</b> the ride launched. Dexter blamed a natural event that had not happened yet. Madame Marigold blamed the spirits, but she was cleared long ago. <b>Time to make your accusation.</b></p>`,
-  clear:[], flag:[{id:"dexter",why:"His earthquake excuse is false: the tremor began 80 seconds after the launch."}]},
- proof:"The first tremor was recorded at 9:41:20 PM, 80 seconds after the 9:40:00 launch, so Dexter’s “the earthquake did it” story is false."
+ reveal:{title:"Case note: the slip",
+  html:`<p>Seraphina knew things that only the person in the library could know. <b>Time to make your accusation.</b></p>`,
+  clear:[], flag:[{id:"seraphina",why:"She described the library and the smashed clock, which the sheriff never mentioned."}]},
+ proof:"Seraphina described Ambrose alone in the library with the smashed clock. The sheriff never told anyone where he was, so only the person who was there could know."
 }
 ];
 
-const TEKS_LIST = [
- ["6.7B","Calculate net force and decide whether forces are balanced or unbalanced"],
- ["6.10B","Model and describe the layers of Earth"],
- ["7.7A","Calculate average speed from distance and time"],
- ["7.7C","Measure, record, and interpret motion with distance-time graphs"],
- ["7.10B","Describe how plate tectonics causes earthquakes, mountain building, ocean basins, and volcanic eruptions"],
- ["8.7A","Use Newton’s 2nd law to relate acceleration, net force, and mass"],
- ["8.7B","Describe how Newton’s three laws act at the same time in systems"]
+const SKILLS_LIST=[
+ ["Time logic","Working out the real time when a clock runs fast or slow"],
+ ["Alibi math","Using distance and time to test whether someone could be somewhere"],
+ ["Checking the clocks","Questioning evidence before trusting it"],
+ ["Matching clues","Comparing a witness description with suspect details"],
+ ["Code breaking","Decoding a secret message"],
+ ["Motive logic","Finding who gained or lost from the crime"],
+ ["Spotting the slip","Noticing when someone knows something they should not"]
 ];
 
 /* ============================================================
    STATE
    ============================================================ */
-const KEY="mesquite-hollow-mystery-v1";
-function fresh(){return {name:"",stage:"intro",st:0,qi:0,phase:"brief",misses:0,cleared:{},flags:{},done:0,cer:"",tries:0,accused:[]}}
+const KEY="bluebonnet-manor-mystery-v1";
+function fresh(){return {name:"",stage:"intro",st:0,qi:0,phase:"brief",misses:0,cleared:{},flags:{},done:0,cer:"",accused:[]}}
 function load(){try{const j=localStorage.getItem(KEY);return j?Object.assign(fresh(),JSON.parse(j)):fresh()}catch(e){return fresh()}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 let S=load();
@@ -492,6 +390,7 @@ const shuf={};
 const $=s=>document.querySelector(s);
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function norm(t){return String(t).toUpperCase().replace(/[^A-Z]/g,"")}
 function go(){save();render();window.scrollTo(0,0)}
 
 /* ============================================================
@@ -508,7 +407,6 @@ function render(){
   else renderSolved();
   renderBoard();
 }
-
 function renderMeter(){
   let dots="";
   for(let i=0;i<STATIONS.length;i++){
@@ -517,34 +415,28 @@ function renderMeter(){
   $("#meter").innerHTML=`<div class="dots" role="img" aria-label="${S.done} of ${STATIONS.length} stations complete">${dots}</div>
   <span class="miss">Wrong answers: <b>${S.misses}</b></span>`;
 }
-
 function renderBoard(){
-  const b=$("#board");
-  let h=`<h2>Case board</h2>`;
+  let h=`<h2>Suspect board</h2>`;
   SUSPECTS.forEach(s=>{
     const c=S.cleared[s.id], f=S.flags[s.id];
-    h+=`<div class="sus ${c?"cleared":""} ${(!c&&f)?"prime":""}">
+    h+=`<div class="sus ${c?"cleared":""} ${(!c&&f&&f.length)?"prime":""}">
       ${c?`<span class="stamp">CLEARED</span>`:""}
       <b>${s.emoji} ${s.name}</b>
-      <small>${s.role}. ${s.place}, ${s.dist} m from the booth.</small>
-      ${c?`<span class="why">${c.why}</span>`:(f?`<span class="why"><b>Prime suspect.</b> ${f}</span>`:`<span class="why">Still a suspect.</span>`)}
+      <small>${s.role}. Says: ${s.claim}</small>
+      ${c?`<span class="why">${c.why}</span>`:(f&&f.length?`<span class="why"><b>Looking guilty:</b> ${f.join(" ")}</span>`:`<span class="why">Still a suspect.</span>`)}
     </div>`;
   });
-  b.innerHTML=h;
+  $("#board").innerHTML=h;
 }
-
 function renderIntro(){
-  let cards=SUSPECTS.map(s=>`<div class="card"><b>${s.emoji} ${s.name}</b><br><span>${s.role}</span><q>${s.say}</q></div>`).join("");
+  const cards=SUSPECTS.map(s=>`<div class="card"><b>${s.emoji} ${s.name}</b><br><span>${s.role}</span><q>${s.say}</q></div>`).join("");
   $("#app").innerHTML=`<div class="paper">
-    <h2>Case file: the death of Barnaby Bonesworth</h2>
-    <p>It is Halloween night at <b>Mesquite Hollow Haunted Park</b>, outside Calavera Springs, Texas. At exactly <b>9:40:00 PM</b>, the Phantom Freefall tower launched with the park’s owner, Barnaby Bonesworth, in the front seat. His lap bar was not locked. He did not survive.</p>
-    <p>Sheriff Salazar has five suspects, a crowd of nervous guests, and no time. She needs a team of science detectives. Stories can lie, but data cannot.</p>
-    <div class="note sans"><b>How to solve it:</b> Visit seven evidence stations. At each one, answer the science questions correctly to unlock the evidence. You can retry, but wrong answers are counted. When all the evidence is in, make your accusation.</div>
-    <h3>The suspects’ statements</h3>
+    <h2>Case file: the last waltz at Bluebonnet Manor</h2>
+    <p>It is Halloween night at <b>Bluebonnet Manor</b> in Calavera Springs, Texas. Every year, Ambrose Hollowell, the owner, throws a costume ball. This year, at <b>9:20 PM</b>, his maid Marisol found him in the library. The old library clock lay smashed on the floor.</p>
+    <p>Sheriff Salazar locked the doors. Someone at this party did it, and the sheriff needs sharp detectives. There is no lab and no gadgets, just <b>time, logic, and clues</b>. Remember: <b>people can lie, and clocks can be wrong.</b></p>
+    <div class="note sans"><b>How to solve it:</b> Visit seven evidence stations. At each one, answer the questions correctly to unlock the next piece of the case. You can try again, but wrong answers are counted. When you have all the evidence, make your accusation.</div>
+    <h3>The suspects’ first statements</h3>
     <div class="cards">${cards}</div>
-    <h3>Park map: distance from the control booth</h3>
-    <div class="scroll"><table class="tbl"><tr><th>Place</th><th>Distance from control booth</th></tr>
-    <tr><td>Maintenance Barn</td><td>180 m</td></tr><tr><td>Gift Shop</td><td>270 m</td></tr><tr><td>Fortune Tent</td><td>360 m</td></tr><tr><td>Funnel Cake Stand</td><td>480 m</td></tr><tr><td>Cavern of Layers</td><td>720 m</td></tr></table></div>
     <h3>Your detective name</h3>
     <label for="nm" class="sans" style="display:block;margin-bottom:6px">Type your name for your case report:</label>
     <input id="nm" type="text" maxlength="40" value="${esc(S.name)}" autocomplete="off">
@@ -552,59 +444,41 @@ function renderIntro(){
   </div>`;
   $("#start").onclick=()=>{S.name=$("#nm").value.trim();S.stage="station";S.st=0;S.qi=0;S.phase="brief";go()};
 }
-
 function stationEvidence(st){
   if(!st.evidence)return "";
   const e=typeof st.evidence==="function"?st.evidence():st.evidence;
   return e?`<div class="evid">${e}</div>`:"";
 }
-
 function renderStation(){
   const st=STATIONS[S.st];
   const head=`<div class="paper"><h2>${st.icon} Station ${st.n}: ${st.title}</h2>
-    <p class="sans" style="margin-top:0"><span class="tag">TEKS ${st.teks}</span><span style="font-size:16px">${st.teksText}</span></p>`;
+    <p class="sans" style="margin-top:0"><span class="tag">Skill: ${st.skill}</span></p>`;
   if(S.phase==="brief"){
     $("#app").innerHTML=`${head}${st.brief}${stationEvidence(st)}
       <div class="row"><button class="btn" id="go" type="button">Start the questions</button></div></div>`;
     $("#go").onclick=()=>{S.phase="q";S.qi=0;go()};
     return;
   }
-  if(S.phase==="reveal"){
-    renderReveal(st);return;
-  }
+  if(S.phase==="reveal"){renderReveal(st);return}
   renderQuestion(st,head);
 }
-
 function renderQuestion(st,head){
   const q=st.qs[S.qi];
   const key=S.st+"-"+S.qi;
   let body=`${head}${stationEvidence(st)}<hr style="border:0;border-top:2px solid #b9a97f;margin:18px 0">
     <div class="qhead"><span>Question ${S.qi+1} of ${st.qs.length}</span><span>Wrong answers so far: <b id="mc">${S.misses}</b></span></div>
-    <div class="qtext">${q.q}</div>${q.visual?q.visual():""}`;
-  if(q.type==="order"){
-    if(!shuf[key])shuf[key]=shuffle(q.items);
-    body+=`<div class="seq" id="seq"></div><div class="pool" id="pool"></div>
-      <div class="row"><button class="btn" id="chk" type="button">Check my order</button><button class="btn ghost" id="clr" type="button">Clear</button></div>
-      <div id="fb"></div></div>`;
+    <div class="qtext">${q.q}</div>`;
+  if(q.type==="text"){
+    body+=`<div class="row" style="margin-top:0"><input id="ans" type="text" autocomplete="off" aria-label="Your answer" style="max-width:560px"><button class="btn" id="chk" type="button">Check my answer</button></div><div id="fb"></div></div>`;
     $("#app").innerHTML=body;
-    let picks=[];
-    const draw=()=>{
-      $("#seq").innerHTML=picks.length?picks.map((p,i)=>`<span class="chip">${i+1}. ${p}</span>`).join(""):`<span class="ph">Your order will appear here. First click the layer at the surface.</span>`;
-      $("#pool").innerHTML=shuf[key].filter(x=>!picks.includes(x)).map(x=>`<button type="button" class="opt" data-v="${x}">${x}</button>`).join("");
-      document.querySelectorAll("#pool .opt").forEach(b=>b.onclick=()=>{picks.push(b.dataset.v);draw()});
+    const check=()=>{
+      const v=$("#ans").value;
+      if(!norm(v)){return}
+      if(norm(v)===norm(q.answer)){$("#chk").disabled=true;$("#ans").disabled=true;correct(q,st)}
+      else miss(q);
     };
-    draw();
-    $("#clr").onclick=()=>{picks=[];$("#fb").innerHTML="";draw()};
-    $("#chk").onclick=()=>{
-      if(picks.length<q.items.length){$("#fb").innerHTML=`<div class="feedback bad">Place all ${q.items.length} layers before checking.</div>`;return}
-      if(picks.join("|")===q.items.join("|")){
-        correct(q,st);
-        $("#chk").disabled=true;$("#clr").disabled=true;
-        document.querySelectorAll("#pool .opt").forEach(b=>b.disabled=true);
-      }else{
-        miss(q);picks=[];draw();
-      }
-    };
+    $("#chk").onclick=check;
+    $("#ans").addEventListener("keydown",e=>{if(e.key==="Enter")check()});
     return;
   }
   if(!shuf[key])shuf[key]=shuffle(q.opts.map((t,i)=>({t,ok:i===q.a})));
@@ -621,7 +495,6 @@ function renderQuestion(st,head){
     }
   });
 }
-
 function miss(q){
   S.misses++;save();
   $("#mc").textContent=S.misses;renderMeter();
@@ -630,7 +503,7 @@ function miss(q){
 function correct(q,st){
   const last=S.qi>=st.qs.length-1;
   $("#fb").innerHTML=`<div class="feedback good"><b>Correct!</b> ${q.explain}</div>
-    <div class="row"><button class="btn" id="nx" type="button">${last?"Unlock the evidence":"Next question"}</button></div>`;
+    <div class="row"><button class="btn" id="nx" type="button">${last?"Unlock the case note":"Next question"}</button></div>`;
   $("#nx").focus();
   $("#nx").onclick=()=>{
     if(last){applyReveal(st);S.phase="reveal";if(S.done<S.st+1)S.done=S.st+1}
@@ -640,24 +513,25 @@ function correct(q,st){
 }
 function applyReveal(st){
   (st.reveal.clear||[]).forEach(c=>{S.cleared[c.id]={n:st.n,why:c.why}});
-  (st.reveal.flag||[]).forEach(f=>{S.flags[f.id]=f.why});
+  (st.reveal.flag||[]).forEach(f=>{
+    const a=S.flags[f.id]=Array.isArray(S.flags[f.id])?S.flags[f.id]:[];
+    if(!a.includes(f.why))a.push(f.why);
+  });
 }
 function renderReveal(st){
   const last=S.st>=STATIONS.length-1;
   $("#app").innerHTML=`<div class="paper"><h2>${st.icon} ${st.reveal.title}</h2>${st.reveal.html}
     <div class="row"><button class="btn" id="nx" type="button">${last?"Make your accusation":"Go to the next station"}</button></div></div>`;
   $("#nx").onclick=()=>{
-    if(last){S.stage="final"}
-    else{S.st++;S.qi=0;S.phase="brief"}
+    if(last){S.stage="final"}else{S.st++;S.qi=0;S.phase="brief"}
     go();
   };
 }
-
 let pickId=null;
 function renderFinal(){
   pickId=null;
   $("#app").innerHTML=`<div class="paper"><h2>Make your accusation</h2>
-    <p>You have seven pieces of evidence. Sheriff Salazar is waiting. Who stood in the control booth at 9:40:00 PM?</p>
+    <p>You have seven pieces of evidence. Sheriff Salazar is waiting. Who was in the library at 9:05 PM?</p>
     <div class="pick" id="pick">${SUSPECTS.map(s=>`<button type="button" class="opt" aria-pressed="false" data-id="${s.id}">${s.emoji} ${s.name} <span style="color:#5a4d63">(${s.role})</span></button>`).join("")}</div>
     <div id="fb"></div>
     <div class="row"><button class="btn" id="acc" type="button" disabled>Accuse this suspect</button></div></div>`;
@@ -669,34 +543,33 @@ function renderFinal(){
   $("#acc").onclick=()=>{
     const pn=SUSPECTS.find(x=>x.id===pickId).name;
     (S.accused=S.accused||[]).push(pn);
-    if(pickId==="dexter"){S.stage="solved";go();return}
+    if(pickId==="seraphina"){S.stage="solved";go();return}
     S.misses++;save();renderMeter();
     const c=S.cleared[pickId];
-    $("#fb").innerHTML=`<div class="feedback bad shake"><b>Not this one.</b> ${c?`Check the case board. This suspect was cleared at Station ${c.n}: ${c.why}`:"Look again at the evidence."}</div>`;
+    $("#fb").innerHTML=`<div class="feedback bad shake"><b>Not this one.</b> ${c?`Check the suspect board. This suspect was cleared at Station ${c.n}: ${c.why}`:"Look again at the evidence."}</div>`;
   };
 }
-
 function rank(){
   if(S.misses<=4)return "Chief Inspector";
   if(S.misses<=10)return "Lead Detective";
   return "Persistent Sleuth";
 }
 function renderSolved(){
-  const proofs=STATIONS.map(s=>`<li><b>Station ${s.n} (${s.teks}):</b> ${s.proof}</li>`).join("");
-  $("#app").innerHTML=`<div class="paper"><h2>Case closed: Dexter Bonesworth did it</h2>
-    <p>Confronted with the evidence, Dexter confessed. He had read the will and knew he was about to lose everything. He pulled the lap bar pin after Rex’s 9:00 inspection, walked to the control booth, dragged the Coffin Chest away from the door, and pressed the launch button at 9:40:00. He escaped in his golf cart and blamed an earthquake that had not happened yet.</p>
+  const proofs=STATIONS.map(s=>`<li><b>Station ${s.n} (${s.title}):</b> ${s.proof}</li>`).join("");
+  $("#app").innerHTML=`<div class="paper"><h2>Case closed: Lady Seraphina Black did it</h2>
+    <p>Faced with the evidence, Seraphina confessed. She had learned that Ambrose planned to sign a new will at 9:30. She wrote a threatening note and left it in his library. At 9:05 she slipped away from the ballroom, and the clock was smashed in the struggle. She hurried back, and the photo booth, running 10 minutes slow, made her alibi look perfect. Her one mistake was describing the library and the smashed clock before anyone had told her.</p>
     <p><b>Detective ${esc(S.name||"")}</b>, you finished with <b>${S.misses}</b> wrong answer${S.misses===1?"":"s"}. Your rank: <b>${rank()}</b>.</p>
     <h3>Your evidence file</h3><ul>${proofs}</ul>
     <h3>Write your case report</h3>
-    <p class="sans" style="font-size:16px">Write a claim, evidence, and reasoning paragraph. <b>Claim:</b> who did it. <b>Evidence:</b> use at least three pieces of evidence with numbers (a speed, a force, an acceleration, a graph reading, or a time). <b>Reasoning:</b> explain why the science proves it (Newton’s laws, speed = distance ÷ time, or cause comes before effect).</p>
-    <textarea id="cer" aria-label="Claim, evidence, and reasoning">${esc(S.cer||"")}</textarea>
+    <p class="sans" style="font-size:16px">Write a paragraph. <b>Claim:</b> who did it. <b>Clues:</b> use at least three pieces of evidence, with times, numbers, or exact details. <b>Logic:</b> explain why those clues, put together, can only point to one person.</p>
+    <textarea id="cer" aria-label="Claim, clues, and logic">${esc(S.cer||"")}</textarea>
     <div id="cerPrint"></div>
     <div class="row"><button class="btn" id="prt" type="button">Print or save my report as a PDF</button></div>
     <div class="note sans"><b>Before you leave:</b> 1) Click <b>Download my case file</b> and save it (or turn it in as your teacher directs). 2) Then click <b>Finish and clear for the next detective</b>. This erases your name and answers from this computer so the next student can start fresh.</div>
     <div class="row"><button class="btn" id="dl" type="button">Download my case file</button><button class="btn ghost" id="fin" type="button" disabled>Finish and clear for the next detective</button></div>
     <div id="dlmsg" class="sans" style="margin-top:8px"></div>
-    <h3>Science standards in this case</h3>
-    <div class="scroll"><table class="tbl">${TEKS_LIST.map(t=>`<tr><td><b>${t[0]}</b></td><td>${t[1]}</td></tr>`).join("")}</table></div>
+    <h3>Detective skills used</h3>
+    <div class="scroll"><table class="tbl">${SKILLS_LIST.map(t=>`<tr><td><b>${t[0]}</b></td><td>${t[1]}</td></tr>`).join("")}</table></div>
   </div>`;
   $("#cer").oninput=e=>{S.cer=e.target.value;save()};
   $("#prt").onclick=()=>{$("#cerPrint").textContent=$("#cer").value;window.print()};
@@ -711,44 +584,42 @@ function renderSolved(){
     if(!downloaded){return}
     if(confirm("This erases your name, answers, and report from this computer. Did your case file download? Clear everything now?")){
       try{localStorage.removeItem(KEY)}catch(e){}
-      S=fresh();shuf&&Object.keys(shuf).forEach(k=>delete shuf[k]);
+      S=fresh();Object.keys(shuf).forEach(k=>delete shuf[k]);
       if(location.hash)history.replaceState(null,"",location.pathname);
       go();
     }
   };
 }
-
 function downloadCase(){
   const name=S.name||"Detective";
-  const acc=(S.accused&&S.accused.length)?S.accused:["Dexter Bonesworth"];
+  const acc=(S.accused&&S.accused.length)?S.accused:["Lady Seraphina Black"];
   const final=acc[acc.length-1];
   const wrong=acc.slice(0,-1);
   const when=new Date().toLocaleString();
-  const proofs=STATIONS.map(s=>`<li><b>Station ${s.n} (TEKS ${s.teks}), ${s.title}:</b> ${s.proof}</li>`).join("");
+  const proofs=STATIONS.map(s=>`<li><b>Station ${s.n} (${s.title}):</b> ${s.proof}</li>`).join("");
   const html=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Case file: ${esc(name)}</title>
 <style>body{font:17px/1.6 Georgia,serif;max-width:780px;margin:30px auto;padding:0 18px;color:#2b2233}h1{font-style:italic}h2{margin-top:1.4em;border-bottom:2px solid #b9a97f}.box{background:#f1e6cc;padding:12px 16px;border-radius:4px}pre{white-space:pre-wrap;font:inherit;background:#fffaf0;border:1px solid #b9a97f;padding:12px;border-radius:4px}</style></head><body>
-<h1>Murder at Mesquite Hollow: Case File</h1>
+<h1>The Last Waltz at Bluebonnet Manor: Case File</h1>
 <div class="box"><p><b>Detective:</b> ${esc(name)}<br><b>Date completed:</b> ${esc(when)}<br><b>Rank:</b> ${rank()}<br><b>Wrong answers:</b> ${S.misses}</p>
 <p><b>Who I think did it:</b> ${esc(final)}${wrong.length?`<br><b>Earlier wrong accusations:</b> ${esc(wrong.join(", "))}`:""}</p></div>
 <h2>My evidence file</h2><ul>${proofs}</ul>
-<h2>My claim, evidence, and reasoning</h2><pre>${esc(S.cer||"(no report written)")}</pre>
-<h2>Science standards covered</h2><ul>${TEKS_LIST.map(t=>`<li><b>${t[0]}</b>: ${t[1]}</li>`).join("")}</ul>
+<h2>My claim, clues, and logic</h2><pre>${esc(S.cer||"(no report written)")}</pre>
+<h2>Detective skills used</h2><ul>${SKILLS_LIST.map(t=>`<li><b>${t[0]}</b>: ${t[1]}</li>`).join("")}</ul>
 </body></html>`;
   const blob=new Blob([html],{type:"text/html"});
   const a=document.createElement("a");
   const safe=name.replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")||"Detective";
-  a.href=URL.createObjectURL(blob);a.download="Mesquite-Hollow-Case-"+safe+".html";
+  a.href=URL.createObjectURL(blob);a.download="Bluebonnet-Manor-Case-"+safe+".html";
   document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
 }
-
 function renderKey(){
   let h=`<div class="paper sans"><h2>Teacher answer key</h2>
-  <p><b>Culprit:</b> Dexter Bonesworth. Clearing order: Gus and Dr. Quartz (Station 3), Marigold (Station 4), Rex (Station 5); Dexter confirmed at Stations 6 and 7. Share the page address without “#key”.</p>`;
+  <p><b>Culprit:</b> Lady Seraphina Black. Clearing order: Rosie and Wyatt (Station 2), Penny (Station 3), Barnaby (Station 4). Seraphina’s photo-booth alibi breaks at Station 3, and Stations 4 to 7 build the case. Share the page address without “#key”.</p>`;
   STATIONS.forEach(s=>{
-    h+=`<h3>Station ${s.n}: ${s.title} (TEKS ${s.teks})</h3><ol>`;
+    h+=`<h3>Station ${s.n}: ${s.title} (${s.skill})</h3><ol>`;
     s.qs.forEach(q=>{
-      const ans=q.type==="order"?q.items.join(" → "):q.opts[q.a];
+      const ans=q.type==="text"?q.answer:q.opts[q.a];
       h+=`<li>${q.q}<br><b>Answer:</b> ${ans}<br><i>${q.explain}</i></li>`;
     });
     h+=`</ol>`;
@@ -756,14 +627,15 @@ function renderKey(){
   h+=`</div>`;
   $("#app").innerHTML=h;
 }
-
 $("#reset").onclick=()=>{
   if(confirm("Start a new case? This clears your saved progress on this computer.")){
+    try{localStorage.removeItem(KEY)}catch(e){}
     S=fresh();if(location.hash)history.replaceState(null,"",location.pathname);go();
   }
 };
 window.addEventListener("hashchange",render);
 render();
+
 </script>
 </body>
 </html>
